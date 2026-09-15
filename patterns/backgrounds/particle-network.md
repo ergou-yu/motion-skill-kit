@@ -1,0 +1,174 @@
+# 粒子连线网络背景
+
+> **ID** `particle-network` · **分类** backgrounds · **性能** medium · **依赖** 无
+
+## Context
+
+经典「科技网络 / 节点连接」隐喻，适合数据、区块链、云计算、AI 类产品的背景。鼠标靠近时粒子被轻推开，提供低烈度的互动感。放文字下方时建议降低整体透明度。
+
+## Approach
+
+- **思路**：Canvas 内 N 个自由漂移的粒子，两两距离小于阈值（130px）时连线，透明度随距离衰减。
+- **技术**：Canvas 2D。`O(n²)` 距离计算先比较 `|dx|/|dy|` 再开方（大多数粒子对在便宜的比较中被排除）；`devicePixelRatio` 缩放保证高分屏清晰。
+- **性能**：90 粒子在桌面很轻松；移动端自动减半粒子数并关闭鼠标交互（触屏无 hover 语义）。粒子数超过 150 后连线数平方级增长，慎加。
+- **降级**：`prefers-reduced-motion` 时只绘制一帧静态网络图；构图保留、动效归零。
+- **迁移提示**：注入 React 时把整段 `<script>` 搬进 `useEffect`（依赖数组留空），`resize`/`pointermove` 监听在 cleanup 中移除。
+
+## Example
+
+<!-- EMBED:START:snippets/backgrounds/particle-network.html -->
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>粒子连线网络背景</title>
+<!--
+  粒子连线网络背景：双击即可预览。
+  为什么用 Canvas 而非 DOM：连线需要每帧重算 O(n²) 距离并重绘，
+  DOM 没法高效画动态线段；Canvas 一次 fill/draw 调用搞定全部粒子。
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #050510; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<script>
+  // ===== 视觉参数集中区 =====
+  const CONFIG = {
+    particleCount: 90,     // 粒子数：桌面 90 / 手机建议 40（面积小，视觉密度已够）
+    particleColor: "rgba(140, 160, 255, 0.9)",
+    lineColor: "140, 160, 255",
+    minSpeed: 0.15,        // 速度下限：太慢显得死板，太快变成蚊群
+    maxSpeed: 0.45,
+    linkDistance: 130,     // 连线阈值（px）：距离内才连线；越大"网"越密但越耗
+    lineOpacityMax: 0.35,  // 连线最大透明度：压低存在感，让"网"若隐若现
+    mouseRadius: 160,      // 鼠标影响半径：靠近的粒子会被轻推开，制造"拨开雾"的互动
+    mousePush: 0.6,        // 推力强度：宁小勿大，大了我晕
+    isMobile: window.matchMedia("(pointer: coarse)").matches,
+  };
+  // 移动端降级：粒子减半 + 关闭鼠标交互（触屏没有 hover 语义）
+  if (CONFIG.isMobile) {
+    CONFIG.particleCount = Math.floor(CONFIG.particleCount / 2);
+    CONFIG.mouseRadius = 0;
+  }
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const canvas = document.getElementById("stage");
+  const ctx = canvas.getContext("2d");
+  let W, H;
+
+  function resize() {
+    // 用 devicePixelRatio 缩放：高分屏上粒子才不发虚
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * ratio;
+    canvas.height = H * ratio;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  }
+
+  // 用工厂函数而非字面量数组：每个粒子的初速随机，且逻辑聚合好维护
+  function makeParticle() {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = CONFIG.minSpeed + Math.random() * (CONFIG.maxSpeed - CONFIG.minSpeed);
+    return {
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      r: 1 + Math.random() * 1.5, // 半径 1~2.5：大小不一才像自然物
+    };
+  }
+
+  let particles = [];
+  const mouse = { x: -9999, y: -9999 };
+
+  function step() {
+    ctx.clearRect(0, 0, W, H);
+
+    // 两层循环只算 i<j：距离是对称的，算一遍就够，省一半计算量
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+
+      // 环绕边界：比反弹更"无痕"，不会有粒子撞墙的突兀感
+      if (p.x < -20) p.x = W + 20;
+      if (p.x > W + 20) p.x = -20;
+      if (p.y < -20) p.y = H + 20;
+      if (p.y > H + 20) p.y = -20;
+
+      // 鼠标推开：临时附加速度而非直接位移，离开后靠阻尼自然回落
+      if (CONFIG.mouseRadius > 0) {
+        const dx = p.x - mouse.x;
+        const dy = p.y - mouse.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < CONFIG.mouseRadius && dist > 0.01) {
+          const force = (1 - dist / CONFIG.mouseRadius) * CONFIG.mousePush;
+          p.x += (dx / dist) * force * 3;
+          p.y += (dy / dist) * force * 3;
+        }
+      }
+
+      // 画粒子
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = CONFIG.particleColor;
+      ctx.fill();
+    }
+
+    // 连线层：透明度随距离衰减，近实远虚
+    ctx.lineWidth = 1;
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const a = particles[i], b = particles[j];
+        const dx = a.x - b.x, dy = a.y - b.y;
+        // 先比 dx/dy 再开方：大多数粒子对在这一步就被排除，开方很贵
+        if (Math.abs(dx) > CONFIG.linkDistance || Math.abs(dy) > CONFIG.linkDistance) continue;
+        const dist = Math.hypot(dx, dy);
+        if (dist < CONFIG.linkDistance) {
+          const alpha = (1 - dist / CONFIG.linkDistance) * CONFIG.lineOpacityMax;
+          ctx.strokeStyle = `rgba(${CONFIG.lineColor}, ${alpha.toFixed(3)})`;
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
+  window.addEventListener("pointermove", (e) => {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+  });
+  window.addEventListener("pointerleave", () => {
+    mouse.x = -9999; // 移出窗口后不再影响粒子
+  });
+  window.addEventListener("resize", () => {
+    resize();
+    // 窗口变大后粒子密度会骤降，重建一次恢复观感
+    particles = Array.from({ length: CONFIG.particleCount }, makeParticle);
+  });
+
+  resize();
+  particles = Array.from({ length: CONFIG.particleCount }, makeParticle);
+
+  if (prefersReducedMotion) {
+    step(); // 降级：静止的一帧粒子网络图，构图仍在、动效归零
+  } else {
+    (function loop() {
+      requestAnimationFrame(loop);
+      step();
+    })();
+  }
+</script>
+</body>
+</html>
+```
+<!-- EMBED:END -->

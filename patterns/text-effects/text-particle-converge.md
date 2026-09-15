@@ -1,0 +1,175 @@
+# 粒子文字汇聚
+
+> **ID** `text-particle-converge` · **分类** text-effects · **性能** medium · **依赖** 无
+
+## Context
+
+数千粒子从四面八方飞入、汇聚成品牌名或口号——冲击力最强的 Hero 标题方案，适合发布会页、作品集首屏、活动专题。汇聚完成后的微颤让文字保持「结晶中」的生命感。中文英文均可。
+
+## Approach
+
+- **思路**：三步——离屏 canvas `fillText` 写字 → `getImageData` 按 `gap` 间隔采样不透明像素作为粒子目标点 → 每粒子从随机出生点向目标做缓动追赶（每帧走剩余距离的 `ease` 比例，先快后慢）。
+- **技术**：Canvas 2D，零库。字号自适应缩放防止长文字出屏；移动端把采样间隔从 4 放到 6，粒子数少一半。
+- **性能**：粒子数 = 文字面积 / gap²，长标题 + 小 gap 会爆炸（几千粒子尚可，上万会卡）；`restarDelay` 控制循环重播。整页只用一处。
+- **降级**：`prefers-reduced-motion` 时跳过飞入过程，粒子直接定格在目标位、关闭微颤——相当于渲染一张粒子构成的静态文字图。
+- **迁移提示**：注入 React 时整段逻辑放 `useEffect`（依赖 `[text]`），卸载时清理 `setTimeout` 循环。
+
+## Example
+
+<!-- EMBED:START:snippets/text-effects/text-particle-converge.html -->
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>粒子文字汇聚</title>
+<!--
+  粒子文字汇聚：数千粒子从四周飞入，汇聚成目标文字。双击即可预览。
+  原理三步：
+  1) 离屏 canvas 上用普通 fillText 写字，getImageData 读像素；
+  2) 每隔 gap 像素采样一个不透明点 → 得到粒子的"目标坐标"；
+  3) 粒子从随机出生点向目标坐标做弹簧插值（缓动追赶）。
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #050510; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<script>
+  // ===== 视觉参数集中区 =====
+  const CONFIG = {
+    text: "MOTION",          // 目标文字：中文英文均可，过长会自动缩小
+    fontSize: 200,           // 基准字号（px），实际会按画布宽度自适应缩放
+    fontFamily: "'Helvetica Neue', 'PingFang SC', sans-serif",
+    gap: 4,                  // 采样间隔（px）：越小粒子越密越清晰，数量平方级增长
+    particleColor: "150, 180, 255", // 粒子色（RGB）：冷白蓝，星空气质
+    ease: 0.06,              // 追赶系数（0~1）：0.06 是"缓缓归位"的呼吸感
+    jitter: 0.3,             // 到位后的微颤幅度：>0 才像"活的沙"，0 则死板
+    scatterRange: 1.2,       // 出生点散布范围（相对画布）：越大入场越戏剧化
+    restarDelay: 4000,       // 汇聚完成后再散开重来的等待（ms）
+    isMobile: window.matchMedia("(pointer: coarse)").matches,
+  };
+  if (CONFIG.isMobile) {
+    CONFIG.gap = 6;          // 移动端放大采样间隔：粒子少一半，手机不烫
+    CONFIG.fontSize = 120;
+  }
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const canvas = document.getElementById("stage");
+  const ctx = canvas.getContext("2d");
+  let W, H;
+
+  function resize() {
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * ratio;
+    canvas.height = H * ratio;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  }
+
+  // 采样文字像素 → 目标点数组
+  function sampleTextPoints() {
+    // 离屏 canvas：只用来读像素，从不上屏
+    const off = document.createElement("canvas");
+    off.width = W;
+    off.height = H;
+    const octx = off.getContext("2d");
+
+    // 自适应字号：文字太宽时按比例缩，保证不出屏
+    let size = CONFIG.fontSize;
+    octx.font = `bold ${size}px ${CONFIG.fontFamily}`;
+    const maxW = W * 0.85;
+    const measured = octx.measureText(CONFIG.text).width;
+    if (measured > maxW) {
+      size = Math.floor(size * (maxW / measured));
+      octx.font = `bold ${size}px ${CONFIG.fontFamily}`;
+    }
+
+    octx.fillStyle = "#fff";
+    octx.textAlign = "center";
+    octx.textBaseline = "middle";
+    octx.fillText(CONFIG.text, W / 2, H / 2);
+
+    const data = octx.getImageData(0, 0, W, H).data;
+    const points = [];
+    // alpha 通道 > 128 视为"文字内部"；步长 gap 控制密度
+    for (let y = 0; y < H; y += CONFIG.gap) {
+      for (let x = 0; x < W; x += CONFIG.gap) {
+        if (data[(y * W + x) * 4 + 3] > 128) {
+          points.push({ x, y });
+        }
+      }
+    }
+    return points;
+  }
+
+  let particles = [];
+
+  function build() {
+    const targets = sampleTextPoints();
+    const range = Math.max(W, H) * CONFIG.scatterRange;
+    particles = targets.map((t) => ({
+      // 出生点：画布外围随机角度均匀分布，入场才有"四面八方飞来"的仪式感
+      x: W / 2 + (Math.random() - 0.5) * range * 2,
+      y: H / 2 + (Math.random() - 0.5) * range * 2,
+      tx: t.x,
+      ty: t.y,
+      // 每粒子随机尺寸 0.8~2：大小不一才像星沙
+      r: 0.8 + Math.random() * 1.2,
+      phase: Math.random() * Math.PI * 2, // 微颤相位错开
+    }));
+  }
+
+  let frame = 0;
+  function step() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = `rgba(${CONFIG.particleColor}, 0.9)`;
+    frame++;
+
+    for (const p of particles) {
+      // 缓动追赶：每帧走剩余距离的 ease 比例 → 先快后慢的"呼吸式"入场
+      p.x += (p.tx - p.x) * CONFIG.ease;
+      p.y += (p.ty - p.y) * CONFIG.ease;
+      // 到位后叠加 sin 微颤：文字保持"结晶中"的活性而非完全冻结
+      const jx = Math.sin(frame * 0.05 + p.phase) * CONFIG.jitter;
+      const jy = Math.cos(frame * 0.05 + p.phase) * CONFIG.jitter;
+      ctx.beginPath();
+      ctx.arc(p.x + jx, p.y + jy, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function startCycle() {
+    build();
+    if (cycleTimer) clearTimeout(cycleTimer);
+    // 汇聚完成后隔一阵重建重来（持续的生命感，也给后来者再次看到入场的机会）
+    cycleTimer = setTimeout(startCycle, CONFIG.restarDelay + 3000);
+  }
+  let cycleTimer = null;
+
+  window.addEventListener("resize", resize);
+  resize();
+  startCycle();
+
+  if (prefersReducedMotion) {
+    // 降级：跳过飞入过程，粒子直接画在目标位（其实是直接渲染最终文字帧）
+    particles.forEach((p) => { p.x = p.tx; p.y = p.ty; });
+    CONFIG.jitter = 0;   // 连微颤也关掉
+    step();
+    if (cycleTimer) clearTimeout(cycleTimer); // 不再循环
+  } else {
+    (function loop() {
+      requestAnimationFrame(loop);
+      step();
+    })();
+  }
+</script>
+</body>
+</html>
+```
+<!-- EMBED:END -->

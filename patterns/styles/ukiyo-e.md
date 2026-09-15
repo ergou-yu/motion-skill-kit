@@ -1,0 +1,203 @@
+# 浮世绘风格（Ukiyo-e）
+
+> **ID** `ukiyo-e` · **分类** styles · **性能** low-cost · **依赖** 无
+
+## Context
+
+日本木刻版画的网页化：有限色板分层 + 扁平色块 + 稳固轮廓 + 竖排落款（《神奈川冲浪里》的语言）。适合东方美学品牌、茶/酒/文创产品、文化展览页。与扁平设计的区别：浮世绘有色板纪律（每层一色）、轮廓墨线与「图案化」的云水纹。
+
+## Approach
+
+- **设计 token**：靛蓝 `#22456E`（普鲁士蓝，晚期的灵魂色）+ 浪蓝 + 淡云蓝三层蓝 + 米纸底 `#F3EBDD` + 唯一暖色赭红 `#C46A4A`（只给落款印章）。
+- **分层构图**：天空（阶梯式色带，模拟套色而非平滑渐变）→ 霞云（repeating 圆角横条的图案化云）→ 富士山（SVG 三角 + 雪顶）→ 大浪（贝塞尔锯齿）→ 印章。层层叠压，z 序即空间。
+- **记忆点**：白色浪爪的锯齿**必须不对称**——三个爪尖高度、弧度各不相同，对称就假了。
+- **东方排版**：`writing-mode: vertical-rl` 竖排标题与落款，是身份标识。
+- **动效纪律**：浪爪极缓慢起伏（±7px / 9s），版画的「呼吸」；幅度必须小，大了就成动画不成版画。
+- **降级**：`prefers-reduced-motion` 浪定格——分层色板本身是静态版画语言，无动画完全成立。
+- **迁移提示**：SVG 浪形可直接替换成品牌图形；token 在 `:root`。
+
+## Example
+
+<!-- EMBED:START:snippets/styles/ukiyo-e.html -->
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>浮世绘风格套件（Ukiyo-e）</title>
+<!--
+  浮世绘风格套件：有限色板分层 + 扁平色块 + 稳固轮廓线 +
+  「隈取」式的图案化装饰。双击即可预览。
+  翻译关键（《神奈川冲浪里》的语言）：
+  · 分层构图：天空带 / 云带 / 主角色 / 前景浪，层层叠压；
+  · 每层纯色、无渐变（浮世绘是木刻版画，一个色板一种色）；
+  · 白色浪爪的锯齿是全风格的记忆点；
+  · 米纸底色 + 靛蓝主色 + 一点赭红。
+-->
+<style>
+  /* ===== 设计 token 集中区 ===== */
+  :root {
+    --u-paper:  #F3EBDD;   /* 米纸底：版画纸的暖白 */
+    --u-indigo: #22456E;   /* 靛蓝：普鲁士蓝，浮世绘晚期的灵魂色 */
+    --u-wave:   #3E6D96;   /* 浪蓝：比靛蓝浅一档的中间调 */
+    --u-pale:   #A8C3CF;   /* 淡云蓝：最浅一层的蓝 */
+    --u-ochre:  #C46A4A;   /* 赭红：唯一的暖色，点在落款/印章/夕阳 */
+    --u-ink:    #1A2233;   /* 轮廓墨色：所有形状的描边 */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Hiragino Mincho ProN", serif;
+    background: var(--u-paper);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 56px 20px; gap: 36px;
+  }
+
+  .print {
+    position: relative;
+    width: min(760px, 94vw);
+    aspect-ratio: 16 / 10;
+    /* 双线画框：外粗内细，装裱感 */
+    border: 3px solid var(--u-ink);
+    outline: 1px solid var(--u-ink);
+    outline-offset: 6px;
+    overflow: hidden;
+    background: var(--u-paper);
+  }
+
+  /* ---- 分层：z-index 从后到前 = 天空 → 云带 → 山 → 浪 → 印章 ---- */
+  .layer { position: absolute; }
+
+  /* 天空：水平色带渐层（不是 CSS 渐变，而是模拟版画的"阶梯式套色"） */
+  .sky {
+    inset: 0;
+    background: linear-gradient(180deg,
+      var(--u-pale) 0%, var(--u-pale) 46%,
+      var(--u-wave) 46%, var(--u-wave) 62%,
+      var(--u-indigo) 62%, var(--u-indigo) 100%
+    );
+  }
+
+  /* 云带（霞）：重复的圆角横条——版画里云的图案化画法 */
+  .clouds {
+    left: 0; right: 0; top: 12%; height: 34%;
+    background: repeating-linear-gradient(
+      180deg,
+      var(--u-paper) 0 14px, transparent 14px 34px
+    );
+    mask-image: repeating-linear-gradient(90deg, #000 0 120px, transparent 120px 170px);
+    -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 120px, transparent 120px 170px);
+    opacity: 0.85;
+  }
+
+  /* 远山：两个三角叠加 + 雪顶，纯 SVG 形状 */
+  .mt-fuji {
+    left: 8%; bottom: 26%; width: 44%;
+  }
+
+  /* 大浪：全画主角，锯齿浪爪是记忆点 */
+  .wave {
+    left: -4%; bottom: -2%; width: 70%;
+  }
+
+  .wave, .mt-fuji { display: block; }
+
+  /* 前景小浪：右侧的呼应 */
+  .wave-small { right: -2%; bottom: -2%; width: 42%; }
+
+  /* 落款印章：赭红方块 + 白字，浮世绘的"签名" */
+  .seal {
+    position: absolute; right: 4%; top: 6%;
+    background: var(--u-ochre); color: var(--u-paper);
+    writing-mode: vertical-rl;  /* 竖排：东方排版的身份标识 */
+    font-size: 13px; letter-spacing: 0.3em;
+    padding: 12px 8px;
+    border: 1.5px solid rgba(0,0,0,0.25);
+  }
+
+  /* ---- 应用示例：浮世绘排版的标题区 ---- */
+  .caption { display: flex; align-items: center; gap: 20px; width: min(760px, 94vw); }
+  .caption h1 {
+    writing-mode: vertical-rl;   /* 竖排标题：海报级的东方构图 */
+    font-size: clamp(22px, 4vw, 34px);
+    letter-spacing: 0.35em; font-weight: 600;
+    color: var(--u-ink);
+    height: 220px;
+  }
+  .caption p { font-size: 14px; line-height: 2; color: #5a6377; max-width: 40ch; }
+  .caption .red-rule { width: 3px; align-self: stretch; background: var(--u-ochre); }
+
+  /* 微动效：浪爪极缓慢起伏——版画的"呼吸"，幅度必须小 */
+  .wave { animation: ukiyo-bob 9s ease-in-out infinite; }
+  .wave-small { animation: ukiyo-bob 9s ease-in-out infinite reverse; }
+  @keyframes ukiyo-bob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-7px); }
+  }
+
+  /* 降级：浪定格。分层色板本身是静态版画语言，无动画完全成立 */
+  @media (prefers-reduced-motion: reduce) {
+    .wave, .wave-small { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="print">
+  <div class="layer sky"></div>
+  <div class="layer clouds"></div>
+
+  <!-- 远山：纯色分层 + 白雪顶，右下留出山脚的阴影蓝 -->
+  <svg class="layer mt-fuji" viewBox="0 0 300 140" aria-hidden="true">
+    <path d="M10,140 L120,18 L150,52 L170,34 L292,140 Z" fill="var(--u-indigo)" stroke="var(--u-ink)" stroke-width="3"/>
+    <path d="M104,40 L120,18 L136,36 L128,44 L118,38 L110,46 Z" fill="var(--u-paper)"/>
+  </svg>
+
+  <!-- 大浪：贝塞尔锯齿 + 白色浪爪。三个爪尖是不对称的，对称就假了 -->
+  <svg class="layer wave" viewBox="0 0 420 220" aria-hidden="true">
+    <path d="M-10,220
+             C40,160 60,120 55,70
+             C90,120 105,140 150,120
+             C120,80 130,50 160,20
+             C175,90 200,120 250,125
+             C230,85 240,55 275,35
+             C280,100 320,150 380,170
+             C400,185 410,200 415,220 Z"
+          fill="var(--u-wave)" stroke="var(--u-ink)" stroke-width="4"/>
+    <!-- 浪爪：白底 + 滴落尖端，"抓向山"的方向感 -->
+    <path d="M55,70
+             C70,95 80,115 150,120
+             C125,88 128,60 160,20
+             C140,60 160,95 205,112
+             C235,118 250,124 250,125
+             L235,150 C200,135 150,132 120,138
+             C95,120 70,95 55,70 Z"
+          fill="var(--u-paper)"/>
+    <circle cx="72" cy="52" r="7" fill="var(--u-ochre)"/>
+    <circle cx="152" cy="42" r="5" fill="var(--u-paper)" stroke="var(--u-ink)" stroke-width="2"/>
+  </svg>
+
+  <svg class="layer wave-small" viewBox="0 0 200 110" aria-hidden="true">
+    <path d="M-5,110 C30,70 45,40 60,10 C75,55 95,80 130,88 C160,95 185,100 205,110 Z"
+          fill="var(--u-indigo)" stroke="var(--u-ink)" stroke-width="4"/>
+    <path d="M60,10 C72,50 92,75 128,86 C105,74 92,58 86,40 C80,32 70,22 60,10 Z" fill="var(--u-paper)"/>
+  </svg>
+
+  <div class="seal">北斋</div>
+</div>
+
+<div class="caption">
+  <h1>浮世绘 · 分层</h1>
+  <div class="red-rule"></div>
+  <p>
+    有限色板、扁平色块、稳固轮廓、竖排落款。把浪与山换成你的产品形状，
+    套用同一套 token，就是一张东方版画风的海报页。锯齿浪爪是不对称的——对称就假了。
+  </p>
+</div>
+
+</body>
+</html>
+```
+<!-- EMBED:END -->

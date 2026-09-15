@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>p5.js 起步模板</title>
+<!--
+  p5.js 空项目模板：双击即可在浏览器打开。
+  为什么用 CDN + UMD 版本：模板追求零构建开箱即用；
+  生产项目建议 npm install p5 后按模块方式引入。
+-->
+<style>
+  /* 为什么重置 margin：p5 默认画布是 inline-block，去掉默认缝隙才能铺满视口 */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #050508; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<!-- 用 UMD 全局版 p5（v1.9.x），保证 file:// 协议双击可开 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+<script>
+  // ===== 视觉参数集中区：调效果只改这里，不碰下面的实现 =====
+  const CONFIG = {
+    background: '#050508',   // 深底色：暗色环境下彩色粒子更醒目
+    dotColor: [255, 255, 255], // 粒子基础色（RGB 数组，方便后续做插值）
+    dotSize: 8,              // 粒子尺寸
+    frameRate: 60,           // 目标帧率：人眼流畅上限约 60，再高只耗电
+  };
+
+  // 尊重系统「减少动态效果」设置：全局只声明一次，setup/draw 都读它
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function setup() {
+    createCanvas(windowWidth, windowHeight);
+    frameRate(CONFIG.frameRate);
+    if (prefersReducedMotion) {
+      // 降级：只画一帧静态内容，不进入 draw 循环
+      noLoop();
+      drawStatic();
+    }
+  }
+
+  function draw() {
+    background(CONFIG.background);
+    // TODO(你)：把生成艺术逻辑写在这里。
+    // 为什么用 draw 每帧重画而非累积：累积（noBackground）适合拖尾类效果，按需选择
+    fill(CONFIG.dotColor);
+    noStroke();
+    circle(width / 2 + sin(frameCount * 0.02) * 100, height / 2, CONFIG.dotSize);
+  }
+
+  // 降级时的静态一帧：保留构图但去掉运动
+  function drawStatic() {
+    background(CONFIG.background);
+    fill(CONFIG.dotColor);
+    noStroke();
+    circle(width / 2, height / 2, CONFIG.dotSize);
+  }
+
+  function windowResized() {
+    // 窗口变化时重建画布，避免拉伸模糊
+    resizeCanvas(windowWidth, windowHeight);
+    if (prefersReducedMotion) drawStatic();
+  }
+</script>
+</body>
+</html>

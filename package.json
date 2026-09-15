@@ -1,0 +1,14 @@
+{
+  "name": "motion-skill-kit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "前端艺术动效代码片段库 + Agent Skill：供 AI Agent 检索并注入经过验证的动效代码片段",
+  "scripts": {
+    "validate": "tsx scripts/validate.ts",
+    "build:docs": "tsx scripts/build-patterns.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}

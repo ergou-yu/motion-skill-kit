@@ -1,0 +1,178 @@
+# Fragment Shader 波纹
+
+> **ID** `fragment-ripple` · **分类** shaders · **性能** medium · **依赖** 无（原生 WebGL1）
+
+## Context
+
+以鼠标为扰动中心的交互水波：涟漪从光标处荡开、随距离与时间衰减。适合水主题品牌、冥想/放松类产品、登录页背景。鼠标移动即交互，零 UI 成本。
+
+## Approach
+
+- **思路**：`fract(dist / waveLength - time × speed)` 生成外扩同心环，`smoothstep` 雕出环的锋利度；`1/(1+dist×6)` 距离衰减 + `exp(-t×decay)` 时间衰减，涟漪才有「荡开并消散」的叙事。
+- **技术**：原生 WebGL1（兼容最广），骨架与 `templates/shader-boilerplate.html` 一致，只有 FRAG 不同——这是本库所有 shader 片段的共同结构。三层不同权重的涟漪源相位错开，叠出「水面」而非「单个环」。
+- **性能**：全屏 fragment pass，中档 GPU 无压力；`pixelRatioCap: 2`。
+- **降级**：uniform `u_rippleStrength` 置 0 → 深海底色的静态一帧，代码路径不变、无黑屏。
+- **调参**：`waveLength` 控制水纹粗细；`ringWidth` 越小环越锋利；换 `colorB` 即换水质（青=泳池、紫=香槟）。
+
+## Example
+
+<!-- EMBED:START:snippets/shaders/fragment-ripple.html -->
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fragment Shader 波纹</title>
+<!--
+  交互波纹 shader：鼠标划过水面，涟漪从指尖荡开。
+  双击即可预览。基于原生 WebGL1（兼容最广），
+  骨架与 templates/shader-boilerplate.html 一致，只换了 FRAG。
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #04060e; }
+  canvas { display: block; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<script>
+  // ===== 视觉参数集中区（全部注入 uniforms） =====
+  const CONFIG = {
+    rippleCount: 3,     // 同时存在的涟漪源数（环形缓冲轮流记录）
+    waveLength: 0.08,   // 波长（uv 单位）：小=细密水纹，大=大水波
+    speed: 0.9,         // 波速（uv/秒）
+    decay: 1.6,         // 涟漪强度随时间的衰减率：大=快消失
+    ringWidth: 0.35,    // 波环宽度（占波长比例）：越窄越"锋利"
+    colorA: [0.02, 0.05, 0.12],  // 深海底色
+    colorB: [0.30, 0.62, 0.95],  // 涟漪高光
+    pixelRatioCap: 2,
+  };
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const canvas = document.getElementById("gl");
+  const gl = canvas.getContext("webgl", { antialias: true });
+
+  const VERT = `
+    attribute vec2 a_position;
+    void main() { gl_Position = vec4(a_position, 0.0, 1.0); }
+  `;
+
+  const FRAG = `
+    precision mediump float;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform vec2 u_mouse;
+    uniform vec3 u_colorA;
+    uniform vec3 u_colorB;
+    uniform float u_waveLength;
+    uniform float u_speed;
+    uniform float u_decay;
+    uniform float u_ringWidth;
+    uniform float u_rippleStrength; // reduced-motion 时置 0
+
+    // 周期波：以鼠标为中心、随时间外扩的同心环
+    float ripple(vec2 uv, vec2 center) {
+      float dist = distance(uv, center);
+      float phase = dist / u_waveLength - u_time * u_speed;
+      // fract 取小数部分 → 0~1 的锯齿；smoothstep 再雕成"环"
+      float ring = fract(phase);
+      float wave = smoothstep(1.0 - u_ringWidth, 1.0, ring);
+      // 距离越远越弱 + 时间衰减（静态涟漪没有"荡开"的叙事）
+      float attenuation = (1.0 / (1.0 + dist * 6.0)) * exp(-u_time * u_decay * 0.35);
+      return wave * attenuation;
+    }
+
+    void main() {
+      vec2 uv = gl_FragCoord.xy / u_resolution;
+      float aspect = u_resolution.x / u_resolution.y;
+      vec2 p = vec2(uv.x * aspect, uv.y);
+      vec2 m = vec2(u_mouse.x * aspect, u_mouse.y);
+
+      // 三层涟漪源：相位错开 1/3，叠出"水面"而不是"单个环"
+      float r = 0.0;
+      r += ripple(p, m) * 1.0;
+      r += ripple(p + vec2(0.25, 0.1), m) * 0.5;
+      r += ripple(p - vec2(0.2, 0.15), m) * 0.35;
+      r *= u_rippleStrength;
+
+      vec3 color = mix(u_colorA, u_colorB, clamp(r, 0.0, 1.0));
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `;
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      throw new Error(gl.getShaderInfoLog(s));
+    }
+    return s;
+  }
+
+  const program = gl.createProgram();
+  gl.attachShader(program, compile(gl.VERTEX_SHADER, VERT));
+  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAG));
+  gl.linkProgram(program);
+  gl.useProgram(program);
+
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(program, "a_position");
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+  const u = {};
+  for (const name of ["u_resolution", "u_time", "u_mouse", "u_colorA", "u_colorB",
+                      "u_waveLength", "u_speed", "u_decay", "u_ringWidth", "u_rippleStrength"]) {
+    u[name] = gl.getUniformLocation(program, name);
+  }
+
+  const mouse = { x: 0.5, y: 0.5 };
+  window.addEventListener("pointermove", (e) => {
+    mouse.x = e.clientX / window.innerWidth;
+    mouse.y = 1 - e.clientY / window.innerHeight; // uv 原点在左下，Y 翻转
+  });
+
+  function resize() {
+    const ratio = Math.min(window.devicePixelRatio || 1, CONFIG.pixelRatioCap);
+    canvas.width = Math.floor(window.innerWidth * ratio);
+    canvas.height = Math.floor(window.innerHeight * ratio);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  const t0 = performance.now();
+  function render(now) {
+    const t = ((now - t0) / 1000);
+    gl.uniform2f(u.u_resolution, canvas.width, canvas.height);
+    gl.uniform1f(u.u_time, t);
+    gl.uniform2f(u.u_mouse, mouse.x, mouse.y);
+    gl.uniform3fv(u.u_colorA, CONFIG.colorA);
+    gl.uniform3fv(u.u_colorB, CONFIG.colorB);
+    gl.uniform1f(u.u_waveLength, CONFIG.waveLength);
+    gl.uniform1f(u.u_speed, CONFIG.speed);
+    gl.uniform1f(u.u_decay, CONFIG.decay);
+    gl.uniform1f(u.u_ringWidth, CONFIG.ringWidth);
+    // 降级：强度归零 → 静态深海底色，画面不黑不闪
+    gl.uniform1f(u.u_rippleStrength, prefersReducedMotion ? 0 : 1);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+
+  if (prefersReducedMotion) {
+    render(t0);
+  } else {
+    (function loop(now) {
+      requestAnimationFrame(loop);
+      render(now);
+    })(performance.now());
+  }
+</script>
+</body>
+</html>
+```
+<!-- EMBED:END -->

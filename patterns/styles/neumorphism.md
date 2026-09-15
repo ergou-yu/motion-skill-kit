@@ -1,0 +1,202 @@
+# 新拟态风格（Neumorphism / Soft UI）
+
+> **ID** `neumorphism` · **分类** styles · **性能** low-cost · **依赖** 无
+
+## Context
+
+单色底 + 双向柔影 = 物体从背景里「挤出来 / 按进去」的软 UI。2020 年前后风靡的 Dribbble 风，适合音乐播放器、智能家居控制面板、计算器类「轻工具」界面。⚠️ 天生对比度不足，**禁用于信息密集或无障碍要求严格的页面**。
+
+## Approach
+
+- **核心公式**：`凸起 = 亮影(左上) + 暗影(右下)`，`凹陷 = inset 反转同一对影`。铁律：**元素与背景同色系**（背景 `#E4E9F2` 则影用它的明暗两端 `#FFFFFF` / `#A9B8CF`，不是黑）。模糊 12~18px、偏移 6~8px。
+- **组件语义**：按钮按下反转 inset（「按进背景」）；输入框天生 inset（挖槽）；开关是状态色唯一合法出现处；hover 用变色不用位移（形状是挤出来的，不能乱动）。
+- **无障碍强制项**：`:focus-visible` 可见焦点（虚线 outline），文字色压到 `#4A5876` 保证 ≥4.5:1——这是新拟态最容易翻车的两处。
+- **性能**：纯 box-shadow，忽略不计。
+- **降级**：`prefers-reduced-motion` 停唱片旋转、开关回弹改直切；凹凸形态本身保留（是材质不是运动）。
+- **迁移提示**：三行核心公式放 `:root` 变量，React 组件直接引用。
+
+## Example
+
+<!-- EMBED:START:snippets/styles/neumorphism.html -->
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新拟态风格套件（Neumorphism / Soft UI）</title>
+<!--
+  新拟态风格套件：单色底 + 双向柔影 = 物体从背景里"挤出来/按进去"。
+  双击即可预览。
+  核心公式（来自对比教程总结）：
+    凸起 = 亮影(左上) + 暗影(右下)，颜色取背景色的明暗两端；
+    凹陷 = box-shadow: inset 反转同一对影。
+  ⚠️ 无障碍天坑：新拟态默认对比度不足，本套件强制带 :focus 可见焦点。
+-->
+<style>
+  /* ===== 设计 token 集中区 ===== */
+  :root {
+    --n-bg:    #E4E9F2;    /* 一切颜色的母体：元素与背景必须同色系，这是新拟态的铁律 */
+    --n-light: #FFFFFF;    /* 亮影色：背景色提亮 */
+    --n-dark:  #A9B8CF;    /* 暗影色：背景色压暗（不是黑！带蓝灰的"环境色"） */
+    --n-text:  #4A5876;    /* 文字：压暗背景色，保证至少 4.5:1 的可读对比 */
+    --n-accent:#6C7CFF;    /* 点缀色：只给开关/进度等状态件 */
+    /* 双影公式：两道偏移、高模糊、零扩散——柔到像光从左上打来 */
+    --n-raised: 8px 8px 18px var(--n-dark), -8px -8px 18px var(--n-light);
+    --n-inset:  inset 5px 5px 12px var(--n-dark), inset -5px -5px 12px var(--n-light);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", sans-serif;
+    background: var(--n-bg);
+    color: var(--n-text);
+    min-height: 100vh;
+    display: grid; place-items: center;
+    padding: 48px 20px;
+  }
+  .deck {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 40px; max-width: 900px; width: 100%;
+  }
+
+  /* ---- 组件壳：每个 demo 卡只是一个"凹槽"，里面放凸起件 ---- */
+  .panel {
+    background: var(--n-bg);
+    border-radius: 26px;
+    padding: 34px 30px;
+    box-shadow: var(--n-raised);
+    display: flex; flex-direction: column; gap: 26px;
+  }
+  .panel h2 { font-size: 17px; font-weight: 600; letter-spacing: 0.04em; }
+  .row { display: flex; align-items: center; gap: 16px; }
+
+  /* ---- 凸起按钮：按下时反转成 inset，"按进背景里" ---- */
+  .btn {
+    font-family: inherit; font-size: 15px; color: var(--n-text);
+    background: var(--n-bg);
+    border: none; border-radius: 14px;
+    padding: 13px 26px; cursor: pointer;
+    box-shadow: var(--n-raised);
+    transition: box-shadow 0.2s ease, transform 0.2s ease, color 0.2s;
+  }
+  .btn:hover { color: var(--n-accent); } /* 新拟态里 hover 不用位移，用变色：形状是"挤出来"的，不能乱动 */
+  .btn:active, .btn.pressed { box-shadow: var(--n-inset); transform: scale(0.985); }
+  /* 无障碍强制项：键盘焦点必须可见——新拟态最容易翻车的地方 */
+  .btn:focus-visible { outline: 2px dashed var(--n-accent); outline-offset: 4px; }
+
+  /* ---- 凹陷输入框：天生 inset，好像在面板上"挖了个槽" ---- */
+  .field {
+    width: 100%; border: none; border-radius: 14px;
+    background: var(--n-bg);
+    box-shadow: var(--n-inset);
+    padding: 13px 18px; font-family: inherit; font-size: 15px; color: var(--n-text);
+  }
+  .field::placeholder { color: #9DABCA; }
+  .field:focus-visible { outline: 2px dashed var(--n-accent); outline-offset: -6px; }
+
+  /* ---- 音乐播放器面板：新拟态最出圈的用法 ---- */
+  .art {
+    width: 100%; aspect-ratio: 1; border-radius: 18px;
+    box-shadow: var(--n-inset);
+    display: grid; place-items: center;
+    /* 唱片：同心圆由重复径向渐变画出 */
+    background:
+      repeating-radial-gradient(circle at 50% 50%,
+        var(--n-bg) 0 8px, var(--n-dark) 8px 10px, var(--n-bg) 10px 18px);
+    position: relative; overflow: hidden;
+  }
+  .art::after {
+    content: ""; width: 54px; height: 54px; border-radius: 50%;
+    background: var(--n-bg); box-shadow: var(--n-raised);
+  }
+  .disc-spin {
+    position: absolute; inset: 0;
+    animation: disc-rotate 9s linear infinite;
+    /* 一道高光弧跟着转：唱片的"转动感"全靠它 */
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(255,255,255,0.35) 40deg, transparent 90deg);
+  }
+  @keyframes disc-rotate { to { transform: rotate(360deg); } }
+
+  /* ---- 开关：状态色是新拟态里唯一允许的"非背景色系" ---- */
+  .toggle {
+    position: relative; width: 62px; height: 32px; border-radius: 999px;
+    background: var(--n-bg); box-shadow: var(--n-inset);
+    cursor: pointer; border: none; padding: 0;
+    transition: background 0.25s;
+  }
+  .toggle::after {
+    content: ""; position: absolute; top: 4px; left: 4px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--n-bg); box-shadow: 2px 2px 6px var(--n-dark), -2px -2px 6px var(--n-light);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); /* 回弹：开关要有"咔哒"的愉悦 */
+  }
+  .toggle[aria-checked="true"] { background: rgba(108, 124, 255, 0.28); }
+  .toggle[aria-checked="true"]::after { transform: translateX(30px); }
+  .toggle:focus-visible { outline: 2px dashed var(--n-accent); outline-offset: 4px; }
+
+  /* ---- 进度条：凹槽 + 凸起滑块 ---- */
+  .progress { flex: 1; height: 12px; border-radius: 999px; box-shadow: var(--n-inset); position: relative; }
+  .progress::before {
+    content: ""; position: absolute; inset: 0; border-radius: 999px;
+    background: var(--n-accent); opacity: 0.55;
+    transform-origin: 0 50%; transform: scaleX(0.4); /* 40% 播放进度 */
+  }
+  .progress::after {
+    content: ""; position: absolute; top: 50%; left: 40%;
+    width: 20px; height: 20px; border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--n-bg); box-shadow: var(--n-raised);
+  }
+
+  /* 降级：唱片停转、开关回弹改直切——形态（凹凸）保留，只有运动取消 */
+  @media (prefers-reduced-motion: reduce) {
+    .disc-spin { animation: none !important; }
+    .toggle::after, .btn { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+  <section class="panel">
+    <h2>凸起 / 凹陷</h2>
+    <div class="row">
+      <button class="btn">默认凸起</button>
+      <button class="btn pressed">按下凹陷</button>
+    </div>
+    <input class="field" type="text" placeholder="凹陷输入槽…（试试键盘 Tab 看焦点）">
+  </section>
+
+  <section class="panel">
+    <h2>音乐面板</h2>
+    <div class="art"><div class="disc-spin"></div></div>
+    <div class="row">
+      <button class="btn" style="border-radius:50%; width:46px; height:46px; padding:0; font-size:16px;" aria-label="播放">▶</button>
+      <div class="progress" role="progressbar" aria-valuenow="40" aria-label="播放进度"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>开关 · 状态色</h2>
+    <div class="row">
+      <button class="toggle" role="switch" aria-checked="false" aria-label="柔和夜灯"></button>
+      <span>柔和夜灯</span>
+    </div>
+    <p style="font-size:13px; line-height:1.8; opacity:0.8;">
+      状态件允许唯一的点缀色。点击开关试试回弹手感。
+    </p>
+  </section>
+</div>
+
+<script>
+  // 开关交互：role=switch 的 ARIA 状态切换（无障碍正确姿势）
+  document.querySelectorAll(".toggle").forEach((t) => {
+    t.addEventListener("click", () => {
+      t.setAttribute("aria-checked", t.getAttribute("aria-checked") === "true" ? "false" : "true");
+    });
+  });
+</script>
+</body>
+</html>
+```
+<!-- EMBED:END -->

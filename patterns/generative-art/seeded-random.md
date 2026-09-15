@@ -1,0 +1,165 @@
+# 种子随机生成艺术（可复现）
+
+> **ID** `seeded-random` · **分类** generative-art · **性能** low-cost · **依赖** 无
+
+## Context
+
+Mondrian 式递归分割构图：同一 seed 永远画出同一幅画，点击换一幅、URL `?seed=42` 可分享复现。适合生成海报、品牌视觉系统（一个 seed 一个「基因」）、NFT/艺术印刷品的底层机制。本片段是理解「可复现随机」的教学样板。
+
+## Approach
+
+- **思路**：Mulberry32 种子 PRNG（6 行代码、分布优于线性同余）驱动递归分割——每格沿长边按 0.35~0.65 随机比例二分，小到 `minCell` 或概率衰减命中就上色停止。
+- **技术**：`roundRect` 画圆角色块 + 固定间隙 gutter（露底色 = 版画质感）；留白格用 8% 白描边暗示结构。种子同步进 URL `?seed=`，刷新/分享都复现。
+- **性能**：一次渲染毫秒级完成，无循环。
+- **降级**：静态生成艺术天然无动画，`prefers-reduced-motion` 无需特殊处理（文档中说明了未来加「逐格生长」动画时的策略：同一 PRNG 序列驱动 + reduced 时直接成品）。
+- **调参**：`minCell` 控制碎度；`fillChance` 控制留白比例；`splitBias` 控制层级深度。
+
+## Example
+
+<!-- EMBED:START:snippets/generative-art/seeded-random.html -->
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>种子随机生成艺术（可复现）</title>
+<!--
+  种子随机生成艺术：Mondrian 式递归分割构图。
+  双击预览；点击画面 = 换种子重画；URL 加 ?seed=123 可复现同一幅。
+  核心知识点：可复现随机（seeded PRNG）——
+  生成艺术的命脉是"同一个种子永远画出同一幅画"。
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 100%; min-height: 100vh;
+    display: grid; place-items: center;
+    background: #0a0a12;
+    font-family: "PingFang SC", sans-serif;
+  }
+  .frame { position: relative; }
+  canvas { border-radius: 12px; box-shadow: 0 24px 80px rgba(0,0,0,0.6); }
+  .meta {
+    position: absolute; top: -28px; left: 2px;
+    color: #888; font-size: 12px; letter-spacing: 0.1em;
+    user-select: none;
+  }
+  .hint {
+    margin-top: 16px; text-align: center; color: #666; font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="meta" id="meta">seed: -</div>
+  <canvas id="art"></canvas>
+</div>
+<p class="hint">点击换一幅 · URL 加 ?seed=42 复现</p>
+<script>
+  // ===== 视觉参数集中区 =====
+  const CONFIG = {
+    size: Math.min(window.innerWidth - 80, 640), // 画布边长：手机上留边
+    minCell: 70,        // 最小格子（px）：小于它就停止分割——控制"碎度"
+    splitBias: 0.5,     // 分割概率衰减：每层少分一点，层级更分明
+    gap: 6,             // 格子间隙：露出底色的" gutter "，印刷感
+    palette: ["#f72585", "#3a86ff", "#ffd166", "#06d6a0", "#f1f1f1"],
+    fillChance: 0.35,   // 格子上色概率：留白多一点才"透气"
+    bg: "#111018",
+    // 初始种子：优先取 URL 参数（可复现入口），否则固定 42
+    seed: new URLSearchParams(location.search).get("seed")
+      ? Number(new URLSearchParams(location.search).get("seed"))
+      : 42,
+  };
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const canvas = document.getElementById("art");
+  const ctx = canvas.getContext("2d");
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = CONFIG.size * ratio;
+  canvas.height = CONFIG.size * ratio;
+  canvas.style.width = CONFIG.size + "px";
+  canvas.style.height = CONFIG.size + "px";
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+  // ---- Mulberry32：32 位种子 PRNG（比线性同余分布更好，代码只有 6 行） ----
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a |= 0; a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296; // 归一化到 [0,1)
+    };
+  }
+
+  let rand = mulberry32(CONFIG.seed);
+
+  // 递归分割：Mondrian 的灵魂。每格要么继续二分，要么停下来上色
+  function splitCell(x, y, w, h, depth) {
+    // 停止条件：够小 / 概率衰减命中 / 太扁的格子不好再分
+    const tooSmall = w < CONFIG.minCell * 2 && h < CONFIG.minCell * 2;
+    const tooThin = w < CONFIG.minCell || h < CONFIG.minCell;
+    if (tooSmall || tooThin || rand() > Math.pow(CONFIG.splitBias, depth)) {
+      paintCell(x, y, w, h);
+      return;
+    }
+    // 沿长边分割：比例在 0.35~0.65 之间（纯 0.5 会太机械，纯随机会太碎）
+    const ratioCut = 0.35 + rand() * 0.3;
+    if (w >= h) {
+      const w1 = w * ratioCut;
+      splitCell(x, y, w1, h, depth + 1);
+      splitCell(x + w1, y, w - w1, h, depth + 1);
+    } else {
+      const h1 = h * ratioCut;
+      splitCell(x, y, w, h1, depth + 1);
+      splitCell(x, y + h1, w, h - h1, depth + 1);
+    }
+  }
+
+  function paintCell(x, y, w, h) {
+    // 间隙让格子之间露出底色 gutter——"版画"质感的关键
+    ctx.fillStyle = CONFIG.bg;
+    ctx.fillRect(x, y, w, h);
+    if (rand() < CONFIG.fillChance) {
+      ctx.fillStyle = CONFIG.palette[Math.floor(rand() * CONFIG.palette.length)];
+      // 圆角矩形：软一点，和硬朗的分割形成张力
+      const r = Math.min(10, w / 8, h / 8);
+      ctx.beginPath();
+      ctx.roundRect(x + CONFIG.gap, y + CONFIG.gap, w - CONFIG.gap * 2, h - CONFIG.gap * 2, r);
+      ctx.fill();
+    } else {
+      // 留白格：细描边暗示结构，不抢戏
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + CONFIG.gap, y + CONFIG.gap, w - CONFIG.gap * 2, h - CONFIG.gap * 2);
+    }
+  }
+
+  function render() {
+    rand = mulberry32(CONFIG.seed); // 重置 PRNG：同一 seed 从头演一遍，画面严格一致
+    ctx.fillStyle = CONFIG.bg;
+    ctx.fillRect(0, 0, CONFIG.size, CONFIG.size);
+    splitCell(0, 0, CONFIG.size, CONFIG.size, 0);
+    document.getElementById("meta").textContent = "seed: " + CONFIG.seed;
+  }
+
+  canvas.addEventListener("click", () => {
+    // 换种子后同步到 URL：刷新/分享链接都能复现这一幅
+    CONFIG.seed = Math.floor(Math.random() * 999999);
+    history.replaceState(null, "", "?seed=" + CONFIG.seed);
+    render();
+  });
+
+  render(); // 本作品是静态生成艺术：无需动画循环，天然适配 reduced-motion
+
+  // 说明：如果要做"逐格生长"的入场动画，也请用同一个 PRNG 序列驱动，
+  // 并在 prefersReducedMotion 时直接 render() 完整成品（本文件即此策略）。
+  if (!prefersReducedMotion) {
+    // 预留钩子：无障碍偏好不影响本作品（静态），此分支留给未来扩展
+  }
+</script>
+</body>
+</html>
+```
+<!-- EMBED:END -->

@@ -1,0 +1,205 @@
+# 瑞士网格风格（Swiss / International Typographic Style）
+
+> **ID** `swiss-grid` · **分类** styles · **性能** low-cost · **依赖** 无
+
+## Context
+
+1950 年代瑞士国际主义排版风格（Josef Müller-Brockmann）：网格系统 + 无衬线字体 + 大量留白 + 黑白灰加一点红。现代 UI 设计（Material、Apple HIG）的共同祖先。适合作品集、建筑/设计事务所、文化机构、高端 B2B——任何需要「秩序感与专业感」的场合。
+
+## Approach
+
+- **设计 token**：暖白底 `#FAFAF7` + 近黑 + 中灰 + **瑞士红 `#E30613` 唯一强调色**（全页只出现 1~2 次，克制本身就是最强的强调）。
+- **网格即秩序**：12 栏 / 24px 槽。先立骨架再放内容；`grid-template-columns: subgrid` 让子区块对齐到同一套栏——这是瑞士风格的网页化核心。非对称平衡：标题右侧 9 栏、左 3 栏留白，正文右 5 栏与标题错开。
+- **字体即层级**：只用一套无衬线（Helvetica/Inter/系统），靠字号 × 字重 × 字距区分；超细字重大数字（01/02/03）+ 细规则线是 Brockmann 海报的签名元素。
+- **动效立场**：瑞士风格几乎不用动画（这是美学立场，不是疏忽）；要动只在 hover 变色和 smooth scroll 级别。
+- **降级**：`prefers-reduced-motion` 关闭 smooth scroll——本身已近乎静态。
+- **迁移提示**：subgrid 需较新浏览器（2023 起全绿）；不支持时退化为独立 12 栏网格，布局逻辑不变。
+
+## Example
+
+<!-- EMBED:START:snippets/styles/swiss-grid.html -->
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>瑞士网格风格套件（Swiss / International Typographic Style）</title>
+<!--
+  瑞士风格（国际主义排版风格）套件：网格系统 + 无衬线字体 +
+  大量留白 + 有限色板（黑白灰 + 一点红）。双击即可预览。
+  源自 1950 年代瑞士的平面设计传统（Josef Müller-Brockmann），
+  是现代 UI 设计（包括 Material/Apple HIG）的共同祖先。
+-->
+<style>
+  /* ===== 设计 token 集中区 ===== */
+  :root {
+    --s-ink:    #111111;   /* 近黑文字 */
+    --s-paper:  #FAFAF7;   /* 暖白底 */
+    --s-gray:   #8A8A85;   /* 中灰：辅助信息 */
+    --s-red:    #E30613;   /* 瑞士红：唯一强调色，来自瑞士国旗 */
+    --s-rule:   #D8D8D2;   /* 分隔线灰 */
+    /* 网格：12 栏 / 24px 槽——Brockmann 网格的网页等价物 */
+    --s-columns: 12;
+    --s-gutter: 24px;
+    --s-maxw: 1080px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    /* 无衬线：Helvetica 的开源等价 Inter/system-ui；字重对比代替字体数量 */
+    font-family: "Helvetica Neue", Inter, system-ui, "PingFang SC", sans-serif;
+    background: var(--s-paper);
+    color: var(--s-ink);
+    line-height: 1.5;
+  }
+  .page { max-width: var(--s-maxw); margin: 0 auto; padding: 0 24px; }
+
+  /* ---- 12 栏网格：先立骨架，内容后放（网格是"看不见的秩序"） ---- */
+  .grid12 {
+    display: grid;
+    grid-template-columns: repeat(var(--s-columns), 1fr);
+    gap: var(--s-gutter);
+  }
+
+  /* ---- 顶栏：细线分隔 + 大写小字距——瑞士式的克制导航 ---- */
+  header {
+    border-bottom: 1px solid var(--s-ink);
+    padding: 18px 0;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .logo { font-weight: 700; font-size: 18px; letter-spacing: -0.01em; }
+  nav { display: flex; gap: 28px; }
+  nav a {
+    color: var(--s-ink); text-decoration: none;
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em;
+  }
+  nav a:hover { color: var(--s-red); }
+
+  /* ---- Hero：不对称跨栏。瑞士的留白是"排出来的"，不是"空出来的" ---- */
+  .hero { padding: 96px 0 72px; }
+  .hero .kicker {
+    grid-column: 1 / span 3;
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--s-red); font-weight: 700;
+  }
+  .hero h1 {
+    grid-column: 4 / -1;               /* 右侧 9 栏：左 3 栏刻意留白 */
+    font-size: clamp(36px, 6vw, 76px);
+    line-height: 1.02; letter-spacing: -0.025em; font-weight: 700;
+  }
+  .hero .lede {
+    grid-column: 6 / -1; margin-top: 28px;
+    font-size: 16px; color: var(--s-gray); max-width: 44ch;
+  }
+
+  /* ---- 编号章节：大号衬线数字 + 细规则线，Brockmann 海报的签名元素 ---- */
+  .sections { border-top: 1px solid var(--s-ink); }
+  .section {
+    grid-column: 1 / -1;
+    display: grid; grid-template-columns: subgrid;   /* subgrid：子项对齐到同一套 12 栏 */
+    padding: 40px 0;
+    border-bottom: 1px solid var(--s-rule);
+  }
+  .section .num {
+    grid-column: 1 / span 2;
+    font-size: clamp(28px, 4vw, 44px); font-weight: 200;   /* 超细字重大数字：优雅的编号 */
+    color: var(--s-ink);
+  }
+  .section h2 {
+    grid-column: 3 / span 4;
+    font-size: 22px; font-weight: 700; letter-spacing: -0.01em;
+  }
+  .section p {
+    grid-column: 8 / -1;                /* 右 5 栏正文：与标题错开——非对称平衡 */
+    font-size: 14.5px; color: var(--s-gray);
+  }
+  .section:nth-child(2) .num { color: var(--s-red); }  /* 全页只有这一个红数字：强调的纪律 */
+
+  /* ---- 图片占位：几何色块 + 说明文字，排版优先于图像 ---- */
+  .figure-row { padding: 56px 0; }
+  .figure {
+    grid-column: span 4;
+    aspect-ratio: 4/3;
+    background: var(--s-ink);
+    position: relative;
+    overflow: hidden;
+  }
+  .figure:nth-child(2) { background: var(--s-red); }
+  .figure:nth-child(3) { background: var(--s-gray); }
+  /* 对角线：几何构成的"动态"由一条 45° 线完成，绝不用动画 */
+  .figure::after {
+    content: ""; position: absolute;
+    top: -10%; right: 28%; width: 1px; height: 120%;
+    background: var(--s-paper); transform: rotate(28deg); opacity: 0.7;
+  }
+  .figure figcaption { position: absolute; left: 12px; bottom: 10px; color: var(--s-paper); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+
+  footer {
+    border-top: 1px solid var(--s-ink);
+    padding: 20px 0 48px;
+    display: flex; justify-content: space-between;
+    font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--s-gray);
+  }
+
+  /* 降级：瑞士风格本身几乎无动画（这是它的美学立场）；
+     smooth scroll 在 reduced-motion 下也应关闭 */
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="logo">Grid&nbsp;/&nbsp;Ordnung</div>
+    <nav>
+      <a href="#">Manifest</a>
+      <a href="#">Projekte</a>
+      <a href="#">Kontakt</a>
+    </nav>
+  </header>
+
+  <section class="hero grid12">
+    <div class="kicker">Internat. Typographic Style — 1957</div>
+    <h1>网格即秩序，留白即呼吸。</h1>
+    <p class="lede">
+      十二栏网格、无衬线字体、非对称平衡与唯一的红色。
+      所有元素对齐到同一套看不见的骨架上——这是瑞士风格留给整个现代 UI 的遗产。
+    </p>
+  </section>
+
+  <section class="sections grid12">
+    <article class="section">
+      <div class="num">01</div>
+      <h2>网格系统</h2>
+      <p>先画 12 栏骨架，再决定内容占几栏。标题右侧、正文右下——非对称，但每一处错位都是网格上的对齐。</p>
+    </article>
+    <article class="section">
+      <div class="num">02</div>
+      <h2>字体即层级</h2>
+      <p>只用一套无衬线，靠字号、字重与字距区分层级。瑞士风格从不靠换字体解决问题。</p>
+    </article>
+    <article class="section">
+      <div class="num">03</div>
+      <h2>有限色板</h2>
+      <p>黑白灰 + 一点瑞士红。红色全页只出现两次——克制本身就是最强的强调。</p>
+    </article>
+  </section>
+
+  <section class="figure-row grid12">
+    <figure class="figure"><figcaption>Abb. 1 — Ordnung</figcaption></figure>
+    <figure class="figure"><figcaption>Abb. 2 — Rhythmus</figcaption></figure>
+    <figure class="figure"><figcaption>Abb. 3 — Leere</figcaption></figure>
+  </section>
+
+  <footer>
+    <span>Set in Helvetica</span>
+    <span>Zürich — 2026</span>
+  </footer>
+</div>
+</body>
+</html>
+```
+<!-- EMBED:END -->

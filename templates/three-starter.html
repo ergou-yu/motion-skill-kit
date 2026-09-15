@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Three.js 起步模板</title>
+<!--
+  Three.js 空项目模板：双击即可在浏览器打开。
+  为什么用 r128 UMD 版：它是最后一批带全局 THREE 的稳定版，file:// 双击零构建可跑；
+  生产项目建议 npm install three 并用 ES Module + import map 引入最新版。
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #050508; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+  // ===== 视觉参数集中区 =====
+  const CONFIG = {
+    background: 0x050508,    // 场景底色（十六进制数，Three 的惯例格式）
+    meshColor: 0x7c6cff,     // 主物体颜色：紫罗兰偏科技感
+    cameraZ: 5,              // 相机距离：越小物体越大，5 是观察单个中置物体的舒适值
+    rotationSpeed: 0.005,    // 每帧旋转弧度：0.005 ≈ 缓慢优雅，超过 0.02 开始显得急躁
+    pixelRatioCap: 2,        // 像素比上限：4K 屏不封顶会多渲染 4 倍像素，纯浪费电
+  };
+
+  // 尊重系统「减少动态效果」设置：关闭时只渲染一帧
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // --- 基础三件套：场景 / 相机 / 渲染器 ---
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(CONFIG.background);
+
+  const camera = new THREE.PerspectiveCamera(
+    60, window.innerWidth / window.innerHeight, 0.1, 100
+  );
+  camera.position.z = CONFIG.cameraZ;
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, CONFIG.pixelRatioCap));
+  document.body.appendChild(renderer.domElement);
+
+  // --- 占位物体：一个 20 面体，替换成你的模型/粒子系统即可 ---
+  const geometry = new THREE.IcosahedronGeometry(1.2, 0);
+  const material = new THREE.MeshBasicMaterial({
+    color: CONFIG.meshColor,
+    wireframe: true, // 为什么线框：起步阶段看得清结构，也不需要打光
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
+
+  function renderOnce() {
+    renderer.render(scene, camera);
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    mesh.rotation.x += CONFIG.rotationSpeed;
+    mesh.rotation.y += CONFIG.rotationSpeed;
+    renderer.render(scene, camera);
+  }
+
+  // 为什么分支而不是不启动循环：降级 = 完全静止但画面仍在（一帧），而不是黑屏
+  if (prefersReducedMotion) {
+    renderOnce();
+  } else {
+    animate();
+  }
+
+  window.addEventListener('resize', () => {
+    // resize 必须同时更新相机宽高比和渲染器尺寸，漏一个画面就会拉伸
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    if (prefersReducedMotion) renderOnce();
+  });
+</script>
+</body>
+</html>

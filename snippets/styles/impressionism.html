@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>莫奈印象派 · 点彩水面（Impressionism Canvas）</title>
+<!--
+  莫奈印象派风格生成器：用 canvas 点彩技法生成"睡莲水面"。
+  双击即可预览。
+  印象派的翻译关键（源自 Will Kemp 画派教程总结）：
+  · 不调色，互补色并置（蓝橙、红绿、黄紫），眼睛在远处自己混合；
+  · 短促、厚重、方向随光的笔触（这里用半透明色斑模拟）；
+  · 画"光的变化"而非"物体的轮廓"——所以永远没有硬边。
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1a2530; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="monet"></canvas>
+<script>
+  // ===== 视觉参数集中区 =====
+  const CONFIG = {
+    // 睡莲色板：[颜色, 权重]——互补对(蓝↔橙、紫↔黄绿)是印象派的调色宪法
+    palette: [
+      ["#3d6b8e", 5],  // 深水蓝
+      ["#6fa3c2", 6],  // 天光蓝
+      ["#9ec9d8", 4],  // 浅反光
+      ["#e8b04b", 2],  // 落日橙（蓝的互补：少量点缀才有"光"）
+      ["#c98bb9", 2],  // 睡莲粉紫
+      ["#7fae7a", 1],  // 反射的绿意
+      ["#f2ead8", 1],  // 高光米白（波峰闪光）
+    ],
+    dotMin: 6, dotMax: 16,   // 色斑尺寸（px）：莫奈的笔触是大而松的，不是修拉的精密圆点
+    layerAlpha: 0.16,        // 每层透明度：叠十几层后色彩自然"混"出光感
+    strokesPerFrame: 40,     // 每帧补笔数：慢慢长出来，像画家持续作画
+    driftSpeed: 0.00012,     // 色彩场漂移速度：水面微光的"呼吸"
+    warpScale: 0.004,        // 噪声尺度：决定色斑聚集的"水团"大小
+    isMobile: window.matchMedia("(pointer: coarse)").matches,
+  };
+  if (CONFIG.isMobile) CONFIG.strokesPerFrame = 24;
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const canvas = document.getElementById("monet");
+  const ctx = canvas.getContext("2d");
+  let W, H;
+
+  function resize() {
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * ratio; canvas.height = H * ratio;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    paintBase();
+  }
+
+  // 按权重展开色板 → 抽色时直接随机索引，比每次算权重便宜
+  const bag = CONFIG.palette.flatMap(([c, w]) => Array(w).fill(c));
+  const pick = () => bag[Math.floor(Math.random() * bag.length)];
+
+  // ---- 轻量噪声：sin 组合伪噪声足够驱动"水面光斑"的聚散 ----
+  function noise(x, y, t) {
+    return (
+      Math.sin(x * 1.7 + t) * Math.cos(y * 1.3 - t * 0.7) +
+      Math.sin((x + y) * 0.9 + t * 0.5) * 0.5
+    ) * 0.5 + 0.5; // 归一到 0~1
+  }
+
+  function paintBase() {
+    // 底色：中灰蓝。印象派的白画布传统——亮底子让多层薄涂透出光
+    ctx.fillStyle = "#7fa3bd";
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // 画一笔"色斑"：椭圆 + 随机角度 = 笔触方向感（印象派的笔触是有姿态的）
+  function strokeAt(t) {
+    // 噪声值决定这一笔的位置偏好：高值区域多画 → 色彩成团，像水波聚光
+    const nx = Math.random(), ny = Math.random();
+    const n = noise(nx * 4, ny * 3, t);
+    if (n < 0.35 && Math.random() < 0.6) return; // 低值区域跳过部分笔触 → 留出深色"水隙"
+
+    const x = nx * W + (Math.random() - 0.5) * 40;
+    const y = ny * H + (Math.random() - 0.5) * 40;
+
+    ctx.save();
+    ctx.translate(x, y);
+    // 角度跟随噪声梯度：邻近的笔触方向相近 → 成"水流"肌理
+    ctx.rotate(Math.sin(y * CONFIG.warpScale * 8 + t) * 0.9);
+    ctx.globalAlpha = CONFIG.layerAlpha;
+    ctx.fillStyle = pick();
+    const r = CONFIG.dotMin + Math.random() * (CONFIG.dotMax - CONFIG.dotMin);
+    ctx.beginPath();
+    // 椭圆笔触：长轴 2.2 倍短轴，扁笔刷躺在画布上的形状
+    ctx.ellipse(0, 0, r * 2.2, r, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  let t0 = performance.now();
+
+  function paintFor(secondsEquivalent) {
+    // 降级与初始化共用：一次性补足 N 层笔触，得到"已画完"的静态成品
+    const frames = Math.floor(secondsEquivalent * 60);
+    for (let i = 0; i < frames; i++) {
+      const t = (i / 60) * 0.2;
+      for (let s = 0; s < CONFIG.strokesPerFrame; s++) strokeAt(t);
+    }
+  }
+
+  window.addEventListener("resize", resize);
+  resize();
+
+  if (prefersReducedMotion) {
+    // 降级：直接呈现画完的作品（约 8 秒等效笔触量），不再有后续演化
+    paintFor(8);
+  } else {
+    // 先铺 5 秒等效笔触再出场，避免用户看到"空画布"
+    paintFor(5);
+    (function loop(now) {
+      requestAnimationFrame(loop);
+      const t = (now - t0) * CONFIG.driftSpeed;
+      for (let i = 0; i < CONFIG.strokesPerFrame; i++) strokeAt(t);
+    })(t0);
+  }
+</script>
+</body>
+</html>

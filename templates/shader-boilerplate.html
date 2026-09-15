@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebGL Fragment Shader 样板</title>
+<!--
+  原生 WebGL 全屏 fragment shader 样板：双击即可打开。
+  为什么不用 three.js：单 shader 场景下原生 WebGL 只有百来行，
+  省掉 600KB 库加载，也更适合理解 shader 本身。
+  使用 WebGL1（GLSL ES 1.00）：兼容性最广，包括老旧移动设备。
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #050508; }
+  canvas { display: block; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<script>
+  // ===== 视觉参数集中区（会注入为 uniforms，改这里即改画面） =====
+  const CONFIG = {
+    colorA: [0.10, 0.06, 0.22],  // 深紫：夜空基调（RGB 0~1，shader 惯例）
+    colorB: [0.25, 0.55, 0.95],  // 亮蓝：高光主色
+    speed: 0.5,                  // 时间流速：乘在 u_time 上，1.0 = 真实秒
+    pixelRatioCap: 2,            // 像素比上限：4K 屏不封顶帧率会腰斩
+  };
+
+  // 尊重系统「减少动态效果」设置：只渲染一帧静态画面，不进入 rAF 循环
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const canvas = document.getElementById('gl');
+  const gl = canvas.getContext('webgl', { antialias: true });
+
+  // --- 顶点着色器：全屏 quad 用，几乎永远不用改 ---
+  const VERT = `
+    attribute vec2 a_position;
+    void main() {
+      // 为什么要绕 z/w：WebGL1 无 gl_VertexID，clip space 直接输出最省事
+      gl_Position = vec4(a_position, 0.0, 1.0);
+    }
+  `;
+
+  // --- 片元着色器：你的艺术创作写在这里 ---
+  const FRAG = `
+    precision mediump float;
+    // ==== uniforms 规范 ====
+    // u_time      float   秒（已乘速度）——驱动一切流动
+    // u_resolution vec2   画布像素尺寸——用于修正宽高比
+    // u_mouse     vec2    鼠标像素坐标——交互入口
+    // u_colorA/B  vec3    CONFIG 注入的主色
+    uniform float u_time;
+    uniform vec2  u_resolution;
+    uniform vec2  u_mouse;
+    uniform vec3  u_colorA;
+    uniform vec3  u_colorB;
+
+    void main() {
+      // 归一化到 0~1 并修正宽高比：否则圆会变椭圆（宽屏拉伸）
+      vec2 uv = gl_FragCoord.xy / u_resolution;
+      float aspect = u_resolution.x / u_resolution.y;
+      vec2 p = vec2(uv.x * aspect, uv.y);
+
+      // TODO(你)：替换成你的效果。这里放一个最简单的呼吸圆环作占位
+      float d = distance(p, vec2(0.5 * aspect, 0.5));
+      float ring = smoothstep(0.30, 0.28, abs(d - 0.15 - 0.02 * sin(u_time)));
+      vec3 color = mix(u_colorA, u_colorB, uv.y) + ring * 0.6;
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `;
+
+  function compile(type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      throw new Error('Shader 编译失败: ' + gl.getShaderInfoLog(shader));
+    }
+    return shader;
+  }
+
+  const program = gl.createProgram();
+  gl.attachShader(program, compile(gl.VERTEX_SHADER, VERT));
+  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAG));
+  gl.linkProgram(program);
+  gl.useProgram(program);
+
+  // 两个三角形拼成全屏矩形（triangle strip 顺序：左下→右下→左上→右上）
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    -1, -1,  1, -1,  -1, 1,  1, 1,
+  ]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(program, 'a_position');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+  const u = {
+    time:       gl.getUniformLocation(program, 'u_time'),
+    resolution: gl.getUniformLocation(program, 'u_resolution'),
+    mouse:      gl.getUniformLocation(program, 'u_mouse'),
+    colorA:     gl.getUniformLocation(program, 'u_colorA'),
+    colorB:     gl.getUniformLocation(program, 'u_colorB'),
+  };
+
+  const mouse = { x: 0, y: 0 };
+  window.addEventListener('pointermove', (e) => {
+    mouse.x = e.clientX * window.devicePixelRatio;
+    mouse.y = canvas.height - e.clientY * window.devicePixelRatio; // 翻转 Y：shader 坐标系原点在左下
+  });
+
+  function resize() {
+    const ratio = Math.min(window.devicePixelRatio || 1, CONFIG.pixelRatioCap);
+    canvas.width = Math.floor(window.innerWidth * ratio);
+    canvas.height = Math.floor(window.innerHeight * ratio);
+    gl.viewport(0, 0, canvas.width, canvas.height); // 忘记这行 = 画面停在旧分辨率
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const startTime = performance.now();
+  function render() {
+    const t = ((performance.now() - startTime) / 1000) * CONFIG.speed;
+    gl.uniform1f(u.time, t);
+    gl.uniform2f(u.resolution, canvas.width, canvas.height);
+    gl.uniform2f(u.mouse, mouse.x, mouse.y);
+    gl.uniform3fv(u.colorA, CONFIG.colorA);
+    gl.uniform3fv(u.colorB, CONFIG.colorB);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+
+  if (prefersReducedMotion) {
+    render(); // 降级：渲染一帧（时间取 0 之后的固定值），画面是静态构图而非黑屏
+  } else {
+    (function loop() {
+      requestAnimationFrame(loop);
+      render();
+    })();
+  }
+</script>
+</body>
+</html>

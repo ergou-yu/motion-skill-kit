@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>玻璃拟态风格套件（Glassmorphism）</title>
+<!--
+  玻璃拟态风格套件：半透明 + 背景模糊 = 毛玻璃卡片。
+  双击即可预览。
+  配方（来自 dev.to / hype4 教程总结）：
+    rgba 白底(5%~15% 透明度) + backdrop-filter: blur + saturate
+    + 1px 半透明白边 + 顶部内侧高光。
+  铁律：玻璃必须叠在"值得被模糊"的彩色背景上，白纸前放玻璃等于没放。
+-->
+<style>
+  /* ===== 设计 token 集中区 ===== */
+  :root {
+    --g-bg1: #6A5BFF;      /* 背景色球 1：紫 */
+    --g-bg2: #22D3EE;      /* 背景色球 2：青 */
+    --g-bg3: #F472B6;      /* 背景色球 3：粉 */
+    --g-tint: rgba(255, 255, 255, 0.12);  /* 玻璃底色：透明度是灵魂参数(0.08~0.18) */
+    --g-border: rgba(255, 255, 255, 0.35);
+    --g-blur: 18px;        /* 模糊半径：12~24px 甜点区 */
+    --g-saturate: 160%;    /* 提饱和：让被模糊的颜色更"糖果"，玻璃更通透 */
+    --g-text: #FFFFFF;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", sans-serif;
+    min-height: 100vh; overflow-x: hidden;
+    background: #12102A; /* 深底：色球在深底上才有"光感" */
+    color: var(--g-text);
+    display: grid; place-items: center;
+    padding: 56px 20px;
+  }
+
+  /* ---- 彩色背景层：玻璃的全部价值来源 ---- */
+  .bg-blobs { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+  .blob {
+    position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.8;
+    will-change: transform;
+    animation: blob-drift 22s ease-in-out infinite alternate;
+  }
+  .blob.b1 { width: 44vmax; height: 44vmax; background: var(--g-bg1); top: -14%; left: -8%; }
+  .blob.b2 { width: 38vmax; height: 38vmax; background: var(--g-bg2); bottom: -12%; right: -6%; animation-delay: -7s; }
+  .blob.b3 { width: 26vmax; height: 26vmax; background: var(--g-bg3); top: 44%; left: 52%; animation-delay: -14s; }
+  @keyframes blob-drift {
+    from { transform: translate(0, 0) scale(1); }
+    to   { transform: translate(6vw, -4vh) scale(1.14); }
+  }
+
+  /* ---- 玻璃卡片：配方本体 ---- */
+  .glass {
+    position: relative; z-index: 1;
+    background: var(--g-tint);
+    /* 一行核心：先 blur 再 saturate，玻璃后面颜色被"奶化"且更鲜艳 */
+    backdrop-filter: blur(var(--g-blur)) saturate(var(--g-saturate));
+    -webkit-backdrop-filter: blur(var(--g-blur)) saturate(var(--g-saturate));
+    border: 1px solid var(--g-border);        /* 1px 白边：玻璃的"厚度" */
+    border-radius: 22px;
+    box-shadow:
+      0 24px 60px rgba(10, 8, 30, 0.35),      /* 投影：玻璃浮在色海上的悬浮感 */
+      inset 0 1px 0 rgba(255,255,255,0.45);   /* 顶缘高光：光源来自上方 */
+    padding: 30px;
+  }
+  .board {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 26px; max-width: 880px; width: 100%;
+  }
+
+  .glass h2 { font-size: 18px; margin-bottom: 10px; letter-spacing: 0.02em; }
+  .glass p  { font-size: 14px; line-height: 1.8; opacity: 0.88; }
+
+  /* ---- 玻璃按钮：更薄的一层玻璃 ---- */
+  .g-btn {
+    font-family: inherit; font-size: 15px; cursor: pointer;
+    color: #fff; margin-top: 18px;
+    background: rgba(255,255,255,0.16);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--g-border);
+    border-radius: 12px; padding: 11px 24px;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .g-btn:hover { background: rgba(255,255,255,0.28); transform: translateY(-2px); }
+  .g-btn:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+  /* ---- 玻璃导航条：贴顶悬浮的用法 ---- */
+  .g-nav {
+    position: relative; z-index: 1;
+    display: flex; gap: 22px; align-items: center;
+    background: var(--g-tint);
+    backdrop-filter: blur(var(--g-blur)) saturate(var(--g-saturate));
+    -webkit-backdrop-filter: blur(var(--g-blur)) saturate(var(--g-saturate));
+    border: 1px solid var(--g-border); border-radius: 999px;
+    padding: 12px 26px; margin-bottom: 40px;
+    box-shadow: 0 14px 40px rgba(10,8,30,0.3), inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .g-nav .logo { font-weight: 700; letter-spacing: 0.08em; }
+  .g-nav a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 14px; }
+  .g-nav a:hover { color: #fff; }
+
+  .stack { display: flex; flex-direction: column; align-items: center; }
+
+  /* 降级：色球漂移停止（玻璃本体保留——静态玻璃完全可用，模糊是材质不是运动） */
+  @media (prefers-reduced-motion: reduce) {
+    .blob { animation: none !important; }
+    .g-btn { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-blobs" aria-hidden="true">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+</div>
+
+<div class="stack">
+  <nav class="g-nav">
+    <span class="logo">FROST·UI</span>
+    <a href="#">组件</a>
+    <a href="#">定价</a>
+    <a href="#">文档</a>
+  </nav>
+
+  <div class="board">
+    <section class="glass">
+      <h2>毛玻璃配方</h2>
+      <p>半透明白底 + backdrop-filter: blur + saturate + 1px 白边 + 顶缘高光。透明度 0.08~0.18 之间最像玻璃，再高就是塑料片。</p>
+      <button class="g-btn">了解更多</button>
+    </section>
+
+    <section class="glass">
+      <h2>背景是价值来源</h2>
+      <p>玻璃必须叠在彩色动态背景上。背后的色球漂移越慢，玻璃越"贵"；换成纯色背景，玻璃立刻变成一块灰色塑料。</p>
+      <button class="g-btn">查看源码</button>
+    </section>
+
+    <section class="glass">
+      <h2>层级克制</h2>
+      <p>同屏玻璃卡片建议 ≤4 张：每张都在消耗背景的色彩预算。导航、侧栏、弹窗是玻璃最合适的三个位置。</p>
+      <button class="g-btn">开始使用</button>
+    </section>
+  </div>
+</div>
+</body>
+</html>

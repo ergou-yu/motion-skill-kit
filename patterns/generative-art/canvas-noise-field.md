@@ -1,0 +1,181 @@
+# Perlin 噪声场（原生实现）
+
+> **ID** `canvas-noise-field` · **分类** generative-art · **性能** high · **依赖** 无
+
+## Context
+
+自实现 Perlin 噪声 + fbm 分形叠加，渲染成流动的云雾/热力场。全屏氛围背景的「底牌级」技术——学会这 60 行，Canvas/WebGL 的生成艺术全部打通（shader 里的 noise() 就是同一套数学）。
+
+## Approach
+
+- **思路**：Perlin 噪声 = 排列表洗牌 → 8 方向梯度 → 四角双线性插值，输出平滑连续的 [-1,1]；fbm 叠 3 层（振幅减半、频率翻倍）出云的自相似细节；噪声值查色带 ramp 上色。
+- **技术**：按 `cell=6px` 的粗网格逐像素算噪声，写入 ImageData 后 `drawImage` 平滑放大到全屏——计算量按 cell² 缩减，这是纯 JS 噪声场能跑满帧的命门。时间维用 x+t / y-t 斜切实现（云斜向流动）。
+- **性能**：全屏逐像素计算属于最贵的一档，`pixelRatioCap: 1.5` 保守封顶；`octaves` 加一层计算翻倍。低端设备建议 cell=10。
+- **降级**：`prefers-reduced-motion` 渲染 t=8s 的一帧静态云图，构图完整。
+- **调参**：色带 `ramp` 是情绪开关——换成暖色立刻变熔岩，加黑变星云。
+
+## Example
+
+<!-- EMBED:START:snippets/generative-art/canvas-noise-field.html -->
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perlin 噪声场（原生实现）</title>
+<!--
+  Perlin 噪声可视化：自实现 2D simplex-ish 噪声 + 时间维度，
+  渲染成流动的等高线/热力场。双击预览。
+  为什么自实现而不用 p5：本片段是"零依赖"教学件——
+  噪声算法 60 行，学会了它，Canvas/WebGL 生成艺术全打通。
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #050510; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="field"></canvas>
+<script>
+  // ===== 视觉参数集中区 =====
+  const CONFIG = {
+    cell: 6,            // 网格步长（px）：越小越细腻，计算量平方级增长
+    noiseScale: 0.008,  // 空间频率：大=大团云，小=细碎鳞
+    timeScale: 0.4,     // 时间流速：云的移动速度
+    octaves: 3,         // 分形叠加层数：3 层出"云的细节"，每层贵一倍
+    // 色带（0~1 映射）：深海 → 暗紫 → 亮青 → 白，夜空的色温逻辑
+    ramp: [
+      [0.0, [6, 8, 20]],
+      [0.35, [40, 27, 80]],
+      [0.6, [56, 189, 248]],
+      [0.8, [224, 242, 254]],
+      [1.0, [255, 255, 255]],
+    ],
+    pixelRatioCap: 1.5, // 全像素级计算，比图形库更吃性能，cap 更保守
+  };
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const canvas = document.getElementById("field");
+  const ctx = canvas.getContext("2d");
+  let W, H;
+
+  // ---------- Perlin 噪声（2D + 时间作为第三维的简单替代） ----------
+  // 排列表 + 梯度：Ken Perlin 原版改良算法的 JS 精简版
+  const PERM = new Uint8Array(512);
+  (function seedPerm() {
+    const p = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) p[i] = i;
+    // Fisher-Yates 洗牌：固定种子保证可复现
+    let s = 1337;
+    const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    for (let i = 255; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [p[i], p[j]] = [p[j], p[i]];
+    }
+    for (let i = 0; i < 512; i++) PERM[i] = p[i & 255];
+  })();
+
+  const fade = (t) => t * t * t * (t * (t * 6 - 15) + 10); // 缓动曲线：值过渡平滑的保证
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const grad = (hash, x, y) => {
+    // 8 个方向的梯度向量，按 hash 选择——噪声"方向感"的来源
+    switch (hash & 7) {
+      case 0: return  x + y; case 1: return -x + y;
+      case 2: return  x - y; case 3: return -x - y;
+      case 4: return  x;     case 5: return -x;
+      case 6: return  y;     default: return -y;
+    }
+  };
+
+  function perlin2(x, y) {
+    const X = Math.floor(x) & 255, Y = Math.floor(y) & 255;
+    const xf = x - Math.floor(x), yf = y - Math.floor(y);
+    const u = fade(xf), v = fade(yf);
+    const aa = PERM[PERM[X] + Y], ab = PERM[PERM[X] + Y + 1];
+    const ba = PERM[PERM[X + 1] + Y], bb = PERM[PERM[X + 1] + Y + 1];
+    // 四个角梯度双线性插值：标准 Perlin 插值结构
+    const x1 = lerp(grad(aa, xf, yf), grad(ba, xf - 1, yf), u);
+    const x2 = lerp(grad(ab, xf, yf - 1), grad(bb, xf - 1, yf - 1), u);
+    return lerp(x1, x2, v); // 输出约 [-1.4, 1.4]
+  }
+
+  // 分形叠加（fbm）：多层不同频率的噪声相加，"云"的自相似细节由此而来
+  function fbm(x, y) {
+    let value = 0, amp = 0.5, freq = 1;
+    for (let o = 0; o < CONFIG.octaves; o++) {
+      value += perlin2(x * freq, y * freq) * amp;
+      amp *= 0.5;   // 每层振幅减半：细节服从主体
+      freq *= 2;    // 每层频率翻倍：细节更密
+    }
+    return value;
+  }
+
+  // 色带插值：把噪声值 [-1,1] 归一化到 [0,1] 再查 ramp
+  function rampColor(t) {
+    t = Math.min(1, Math.max(0, t));
+    for (let i = 1; i < CONFIG.ramp.length; i++) {
+      const [t1, c1] = CONFIG.ramp[i];
+      const [t0, c0] = CONFIG.ramp[i - 1];
+      if (t <= t1) {
+        const k = (t - t0) / (t1 - t0 || 1);
+        return [lerp(c0[0], c1[0], k), lerp(c0[1], c1[1], k), lerp(c0[2], c1[2], k)];
+      }
+    }
+    return CONFIG.ramp[CONFIG.ramp.length - 1][1];
+  }
+
+  // 离屏 ImageData 逐像素写：比 fillRect 一格格画快一个数量级
+  let imgData;
+  function resize() {
+    const ratio = Math.min(window.devicePixelRatio || 1, CONFIG.pixelRatioCap);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = Math.floor(W * ratio);
+    canvas.height = Math.floor(H * ratio);
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    imgData = ctx.createImageData(Math.ceil(W / CONFIG.cell), Math.ceil(H / CONFIG.cell));
+  }
+
+  const t0 = performance.now();
+  function render(now) {
+    const t = ((now - t0) / 1000) * CONFIG.timeScale;
+    const gw = imgData.width, gh = imgData.height;
+    const data = imgData.data;
+    for (let gy = 0; gy < gh; gy++) {
+      for (let gx = 0; gx < gw; gx++) {
+        // 时间维用"斜切"实现：x+t / y-t 让云斜向流动，一行代码的第三维
+        const n = fbm(gx * CONFIG.cell * CONFIG.noiseScale + t, gy * CONFIG.cell * CONFIG.noiseScale - t * 0.7);
+        const [r, g, b] = rampColor((n + 0.9) / 1.8);
+        const i = (gy * gw + gx) * 4;
+        data[i] = r; data[i + 1] = g; data[i + 2] = b; data[i + 3] = 255;
+      }
+    }
+    // 一次性把小网格 putImageData 到离屏，再 drawImage 放大到全屏：
+    // 平滑放大由浏览器插值完成，计算量按 cell² 缩减
+    const off = document.createElement("canvas");
+    off.width = gw; off.height = gh;
+    off.getContext("2d").putImageData(imgData, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(off, 0, 0, W, H);
+  }
+
+  window.addEventListener("resize", resize);
+  resize();
+
+  if (prefersReducedMotion) {
+    render(t0 + 8000); // 降级：渲染 t=8s 的一帧静态"云图"，构图完整
+  } else {
+    (function loop(now) {
+      requestAnimationFrame(loop);
+      render(now);
+    })(performance.now());
+  }
+</script>
+</body>
+</html>
+```
+<!-- EMBED:END -->

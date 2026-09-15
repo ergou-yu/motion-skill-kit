@@ -1,0 +1,160 @@
+# 横向滚动 Pin 区域
+
+> **ID** `horizontal-scroll` · **分类** scroll · **性能** medium · **依赖** 无
+
+## Context
+
+竖向滚动的页面中，某个章节被 sticky「钉住」，内部卡片横向平移——画廊、产品特性、时间线、案例展示的叙事利器。仪式感强，适合故事型落地页的中段高潮。
+
+## Approach
+
+- **思路**：`position: sticky` 钉住一屏高的视口容器；外壳高度 = `100vh + (track 总宽 − 视口宽)`，多出来的竖直滚动量 1:1 兑换为 track 的横向位移（progress × extra）。
+- **技术**：纯 CSS sticky + 少量 JS 算高度和位移，零库。GSAP ScrollTrigger 是同类方案，但 CSS 能解决就不引依赖。`resize` 后必须重算高度。
+- **性能**：大 track 的 transform 单次合成；卡片用 vw 定宽保证 `scrollWidth` 稳定。注意 pin 区高度大（本例 400vh 量级），首屏勿用。
+- **降级**：移动端（≤768px 媒体查询）直接回退为纵向卡片流；`prefers-reduced-motion` 注入同样的纵向回退样式——信息零损失，只是不再「演」。
+- **调参**：卡片宽 `34vw` / 间距 `4vw`；`smooth < 1` 可加拖拽惯性（需自加 rAF 循环）。
+
+## Example
+
+<!-- EMBED:START:snippets/scroll/horizontal-scroll.html -->
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>横向滚动 Pin 区域</title>
+<!--
+  横向滚动（sticky pin）：竖着滚页面，中间章节被"钉住"，
+  内部卡片横向平移——长卷翻页的叙事感。双击即可预览。
+  为什么纯 CSS sticky 而非 JS pin：零 JS、不掉帧；
+  GSAP ScrollTrigger 是同类效果，但能用 CSS 解决就不引库。
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #07070f; color: #e8e8f4; font-family: "PingFang SC", "Helvetica Neue", sans-serif; }
+
+  /* 占位章节：让你有"滚进又滚出 pin 区"的完整体验 */
+  .fill { height: 80vh; display: grid; place-items: center; font-size: 14px; color: #666; }
+
+  /* Pin 区外壳：高度 = 一屏(视口) + 横向内容总宽 - 一屏内容宽
+     多出来的高度就是"用户需要竖着滚的量"，全部被换成横向位移 */
+  .pin-section {
+    position: relative;
+    height: 400vh; /* 会由 JS 按公式精确重算，这里只是初始占位 */
+  }
+  .sticky-viewport {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden; /* 横向内容被裁在这里，只露出视口部分 */
+  }
+  .track {
+    display: flex;
+    gap: 4vw;
+    align-items: center;
+    height: 100%;
+    padding: 0 8vw;
+    /* will-change 提示合成器：这个大家伙每帧都在被 transform */
+    will-change: transform;
+  }
+  .card {
+    flex: 0 0 auto;
+    width: 34vw;
+    min-width: 300px;
+    height: 56vh;
+    border-radius: 20px;
+    background: linear-gradient(160deg, #1c1838, #0d0c1d);
+    border: 1px solid rgba(140, 140, 255, 0.18);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 32px;
+  }
+  .card h3 { font-size: 24px; margin-bottom: 8px; }
+  .card p { font-size: 14px; color: #9a9ab8; line-height: 1.6; }
+  .hint {
+    position: absolute;
+    bottom: 5vh;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: #666;
+    letter-spacing: 0.2em;
+  }
+  /* 移动端回退：竖排卡片 + 正常滚动（触屏上横向 pin 体验差且费电） */
+  @media (max-width: 768px) {
+    .pin-section { height: auto !important; }
+    .sticky-viewport { position: static; height: auto; overflow: visible; }
+    .track { flex-direction: column; transform: none !important; padding: 10vw 6vw; }
+    .card { width: 100%; min-width: 0; height: 40vh; }
+  }
+</style>
+</head>
+<body>
+
+<section class="fill">↓ 向下滚动进入横向章节</section>
+
+<section class="pin-section" id="pin">
+  <div class="sticky-viewport">
+    <div class="track" id="track">
+      <div class="card"><h3>01 · 起</h3><p>竖向滚动被 sticky 钉住，开始兑换为横向位移。</p></div>
+      <div class="card"><h3>02 · 承</h3><p>每张卡片宽度固定，总宽度决定 pin 区需要多高。</p></div>
+      <div class="card"><h3>03 · 转</h3><p>外壳高度 = 100vh + (track 宽 - 视口宽)，JS 精确计算。</p></div>
+      <div class="card"><h3>04 · 合</h3><p>滚出范围后 sticky 解除，页面继续竖向流动。</p></div>
+      <div class="card"><h3>05 · 终</h3><p>把这一节换成你的产品章节、画廊或时间线。</p></div>
+    </div>
+    <div class="hint">SCROLL →</div>
+  </div>
+</section>
+
+<section class="fill">↑ 横向章节结束，继续向下</section>
+
+<script>
+  // ===== 视觉参数集中区 =====
+  const CONFIG = {
+    smooth: 1,          // 位移平滑系数：1=跟手；0.15 左右会有"拖拽惯性"（需 rAF 循环）
+  };
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pin = document.getElementById("pin");
+  const track = document.getElementById("track");
+
+  function layout() {
+    // 精确计算 pin 区高度：多滚的竖直量 = 横向多出的内容量，1:1 兑换
+    const extra = track.scrollWidth - window.innerWidth;
+    pin.style.height = `${window.innerHeight + Math.max(extra, 0)}px`;
+    if (!prefersReducedMotion) update();
+  }
+
+  function update() {
+    const rect = pin.getBoundingClientRect();
+    // progress 0→1：从 pin 区顶边碰到视口顶，到 pin 区底边碰到视口底
+    const total = pin.offsetHeight - window.innerHeight;
+    const progress = Math.min(1, Math.max(0, -rect.top / (total || 1)));
+    const extra = track.scrollWidth - window.innerWidth;
+    track.style.transform = `translate3d(${(-progress * extra).toFixed(1)}px, 0, 0)`;
+  }
+
+  // resize 后卡片宽度/视口宽度变化，必须重算高度
+  window.addEventListener("resize", layout);
+
+  if (prefersReducedMotion) {
+    // 降级：pin 区改为普通纵向排布（移动端 CSS 同款处理），信息零损失
+    const style = document.createElement("style");
+    style.textContent = `
+      .pin-section { height: auto !important; }
+      .sticky-viewport { position: static; height: auto; overflow: visible; }
+      .track { flex-direction: column; transform: none !important; }
+      .card { width: 100%; min-width: 0; }
+    `;
+    document.head.appendChild(style);
+  } else {
+    layout();
+    window.addEventListener("scroll", update, { passive: true });
+  }
+</script>
+</body>
+</html>
+```
+<!-- EMBED:END -->
