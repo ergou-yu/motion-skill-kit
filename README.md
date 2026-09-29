@@ -2,8 +2,8 @@
 
 前端艺术动效代码片段库 + Agent Skill。让你（或 AI Agent）在生成前端页面时，快速检索并注入**经过验证的动效代码片段与艺术风格套件**，提升 AI 产出页面的视觉质感。
 
-- **42 个片段**：18 个 React `.tsx`（Next.js App Router 兼容）+ 24 个原生 HTML 单文件（双击即可预览）
-- **9 大分类**：背景 / 文字 / 光标 / 滚动 / 图片 / 转场 / 生成艺术 / 着色器 + **艺术风格**（孟菲斯、蒸汽波、Y2K、新拟态、玻璃拟态、欧普、粗野主义、瑞士网格、印象派点彩、梵高星夜、浮世绘、包豪斯、波普——共 13 套风格 token + 组件 demo）
+- **49 个片段**：18 个 React `.tsx`（Next.js App Router 兼容）+ 31 个原生 HTML 单文件（双击即可预览）
+- **9 大分类**：背景 / 文字 / 光标 / 滚动 / 图片 / 转场 / 生成艺术 / 着色器 + **艺术风格**（孟菲斯、蒸汽波、Y2K、新拟态、玻璃拟态、欧普、粗野主义、瑞士网格、印象派点彩、梵高星夜、浮世绘、包豪斯、波普、酸性设计、赛博朋克、Frutiger Aero、黏土拟态、Art Deco、新中式水墨、像素风——共 20 套风格 token + 组件 demo）
 - **零第三方运行时依赖**：全部用原生 CSS / Canvas / Web Animations API / IntersectionObserver / WebGL 实现（唯一例外：p5.js 流场走 CDN）
 - **每个片段都带**：顶部 `CONFIG` 参数对象（颜色/速度/幅度集中调参）、`prefers-reduced-motion` 降级、解释「为什么这么写」的中文注释
 
@@ -14,8 +14,8 @@ motion-skill-kit/
 ├── SKILL.md              # Agent Skill 入口（触发条件 + 检索流程 + 注入规范）
 ├── skill.json            # skill 元数据（名称/描述/触发关键词）
 ├── README.md             # 本文件
-├── patterns/             # 42 篇模式文档（Context / Approach / Example 三段式）
-├── snippets/             # 42 个可运行片段（.tsx / .html，与文档一一对应）
+├── patterns/             # 49 篇模式文档（Context / Approach / Example 三段式）
+├── snippets/             # 49 个可运行片段（.tsx / .html，与文档一一对应）
 ├── templates/            # 起步模板：p5.js / Three.js / shader boilerplate
 ├── data/index.json       # 结构化索引（Agent 检索入口）
 └── scripts/

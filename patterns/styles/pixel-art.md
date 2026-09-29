@@ -1,0 +1,239 @@
+# 像素风（Pixel Art / Retro Game）
+
+> **ID** `pixel-art` · **分类** styles · **性能** low-cost · **依赖** Press Start 2P 字体（Google Fonts CDN，可移除）
+
+## Context
+
+8-bit 游戏机的视觉语言：Game Boy 四色、整格颗粒、无平滑过渡。适合游戏/电竞/独立开发者的产品页、复古活动、程序员周边。情绪关键词：怀旧、极客、纯粹。
+
+## Approach
+
+- **调色板纪律**：Game Boy 四色绿（`#0F380F → #9BBC0F`）——最少颜色的完整世界；换 NES 色板同理，但**不超过 4~5 色**，多一色就出戏。
+- **box-shadow 像素画**（核心技术）：一个 `4px × 4px` 的元素 + N 个 `(x*u, y*u)` 偏移阴影 = 整幅像素图。demo 里画稿用字符串矩阵（`'.'` 透明、`0-3` 色阶），JS 转阴影——比 N 个 div 便宜（合成器批量处理，单盒子管理）。
+- **颗粒纪律**：所有尺寸是 `--px-unit`（4px）的整数倍；边框用 box-shadow 画（border 太「细滑」没有颗粒感）；**禁用一切 transition**——8-bit 世界状态只有跳变，这是像素风的灵魂纪律。
+- **立体字**：三层阶梯 `text-shadow`（右下逐级错位、零 blur）；硬投影 `box-shadow: 4px 4px 0`（整格偏移、无模糊）。
+- **血条/进度**：凹槽（黑底 + 1 格内衬）+ 分段格子 + `steps(1)` 闪烁。
+- **无障碍**：像素字体对阅读障碍不友好，正文别用；`image-rendering: pixelated` 用于放大小图。
+- **降级**：`prefers-reduced-motion` 停血条闪烁——其余本就是「无动画美学」。
+
+## Example
+
+<!-- EMBED:START:snippets/styles/pixel-art.html -->
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>像素风风格套件（Pixel Art / Retro Game）</title>
+<!--
+  像素风（Pixel Art / Retro Game）套件：8-bit 游戏机的视觉语言。
+  双击即可预览。核心技术（源自 CSS 像素画教程总结）：
+  · box-shadow 像素画：一个 1px 元素 + N 个偏移阴影 = 整幅像素图；
+  · image-rendering: pixelated：小图放大不糊；
+  · 一切过渡禁用：8-bit 世界里没有亚像素，状态只有"跳变"。
+  调色板采用 Game Boy 经典四色绿——最少颜色的完整世界。
+  字体：Press Start 2P（Google Fonts CDN，离线时回退等宽体，见 dependencies）。
+-->
+<style>
+  /* ===== 设计 token 集中区 ===== */
+  :root {
+    /* Game Boy 四色：从最暗到最亮，屏幕的物理限制成就了风格 */
+    --px-0: #0F380F;   /* 深（黑）：线条与文字 */
+    --px-1: #306230;   /* 中深（深绿）：次级块 */
+    --px-2: #8BAC0F;   /* 中浅（黄绿）：主体填充 */
+    --px-3: #9BBC0F;   /* 最亮（浅绿）：背景/高光 */
+    --px-unit: 4px;    /* 像素颗粒尺寸：所有"1px"都是它的倍数 */
+    --px-font: "Press Start 2P", "Courier New", ui-monospace, monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--px-font);
+    background: var(--px-3);
+    color: var(--px-0);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 64px 20px; gap: 40px;
+    /* 屏幕颗粒：极细的横向扫描纹，液晶屏的既视感（透明度必须极低） */
+    background-image: repeating-linear-gradient(
+      180deg, rgba(15, 56, 15, 0.05) 0 2px, transparent 2px 6px);
+  }
+
+  /* 像素字体：CDN 加载；拿不到时等宽体兜底，布局不塌 */
+  @font-face {
+    font-family: "Press Start 2P";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/pressstart2p/v15/e3t4euO8T-267oIAQAu6jDQyK3nVivM.woff2") format("woff2");
+  }
+
+  /* ---- 标题：像素"立体字"——纯硬阴影逐级错位，无 blur ---- */
+  .px-title {
+    font-size: clamp(22px, 5.5vw, 44px);
+    line-height: 1.5;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--px-3);
+    /* 三层阶梯阴影：右下一格深绿、再下一格黑——8-bit 的"厚度" */
+    text-shadow:
+      calc(var(--px-unit) / 2) calc(var(--px-unit) / 2) 0 var(--px-1),
+      var(--px-unit) var(--px-unit) 0 var(--px-0);
+    background: var(--px-0);
+    padding: 18px 26px;
+    /* 像素边框：用 box-shadow 画双线框（border 太"细滑"，没有颗粒感） */
+    box-shadow:
+      0 calc(var(--px-unit) * 1) 0 var(--px-0),
+      0 calc(var(--px-unit) * 2) 0 var(--px-1);
+  }
+  .px-sub { font-size: 11px; letter-spacing: 0.3em; color: var(--px-1); margin-top: 14px; }
+
+  /* ---- 像素画容器：box-shadow 技术的舞台 ---- */
+  .pixel-stage {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 40px; width: min(680px, 94vw);
+  }
+  .sprite-frame {
+    border: var(--px-unit) solid var(--px-0);
+    background: var(--px-2);
+    padding: 28px;
+    display: grid; place-items: center; gap: 20px;
+    box-shadow: var(--px-unit) var(--px-unit) 0 var(--px-0); /* 硬投影：无模糊、整格偏移 */
+  }
+  /* 像素画本体：JS 把矩阵转成 box-shadow 写进来（见底部脚本） */
+  .sprite { width: var(--px-unit); height: var(--px-unit); }
+  .sprite-frame figcaption { font-size: 9px; letter-spacing: 0.2em; color: var(--px-0); }
+
+  /* ---- 血条：像素进度条（凹槽 + 分段格子） ---- */
+  .hp { width: 100%; }
+  .hp .label { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 8px; }
+  .hp-track {
+    height: calc(var(--px-unit) * 5);
+    background: var(--px-0);
+    padding: var(--px-unit);           /* 内衬 1 格 = 凹槽边框 */
+    display: flex; gap: var(--px-unit);
+  }
+  .hp-cell {
+    flex: 1;
+    background: var(--px-1);
+    /* 逐格闪烁动画：loading 的 8-bit 表达（steps 跳变，绝不平滑） */
+    animation: hp-blink 1.2s steps(1) infinite;
+  }
+  .hp-cell.on { background: var(--px-0); }
+  .hp-cell:nth-child(6n+1) { animation-delay: -0.2s; }
+  .hp-cell:nth-child(6n+3) { animation-delay: -0.6s; }
+  .hp-cell:nth-child(6n+5) { animation-delay: -0.9s; }
+  @keyframes hp-blink { 0%, 70% { opacity: 1; } 71%, 100% { opacity: 0.35; } }
+
+  /* ---- 像素按钮：按下 = 整格位移 + 阴影清零，无任何过渡 ---- */
+  .px-btn {
+    font-family: var(--px-font); font-size: 12px; letter-spacing: 0.14em;
+    cursor: pointer;
+    color: var(--px-3);
+    background: var(--px-0);
+    border: none;
+    padding: 16px 28px;
+    box-shadow: calc(var(--px-unit) * 1.5) calc(var(--px-unit) * 1.5) 0 var(--px-1);
+    /* 没有 transition！8-bit 的状态切换是瞬时的——这是像素风的灵魂纪律 */
+  }
+  .px-btn:hover { background: var(--px-1); }
+  .px-btn:active {
+    transform: translate(calc(var(--px-unit) * 1.5), calc(var(--px-unit) * 1.5));
+    box-shadow: 0 0 0 var(--px-1);
+  }
+  .px-btn:focus-visible { outline: var(--px-unit) dashed var(--px-1); outline-offset: 4px; }
+
+  /* 降级：血条闪烁停止（格斗游戏的血条本来也常静止）；其余本就无动画 */
+  @media (prefers-reduced-motion: reduce) {
+    .hp-cell { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div style="text-align:center;">
+  <div class="px-title">PIXEL&nbsp;QUEST</div>
+  <div class="px-sub">— PRESS START —</div>
+</div>
+
+<div class="pixel-stage">
+  <figure class="sprite-frame">
+    <!-- 像素矩阵由 JS 渲染：data-sprite 是画稿 -->
+    <div class="sprite" id="sprite-heart" data-sprite="heart" aria-label="像素心形"></div>
+    <figcaption>HEART · box-shadow 画</figcaption>
+  </figure>
+
+  <figure class="sprite-frame">
+    <div class="sprite" id="sprite-bot" data-sprite="bot" aria-label="像素机器人"></div>
+    <figcaption>ROBOT · 8×8 矩阵</figcaption>
+  </figure>
+</div>
+
+<div class="hp" style="width: min(680px, 94vw); margin-top: 8px;">
+  <div class="label"><span>HP</span><span>58/100</span></div>
+  <div class="hp-track" role="progressbar" aria-valuenow="58" aria-label="生命值">
+    <!-- on 类 = 有血量的格子；JS 只负责生成格子数 -->
+  </div>
+</div>
+
+<button class="px-btn">CONTINUE&nbsp;▶</button>
+
+<script>
+  // ---- 像素画：矩阵 → box-shadow ----
+  // 为什么用 box-shadow 而不是 N 个 div：一个元素一次绘制，浏览器只管理一个盒子；
+  // 阴影由合成器批量处理，比几十个 DOM 节点便宜。
+  // 画稿用字符串矩阵：'3' = 最亮色 … '0' = 最黑，'.' = 透明（不画）
+  const PALETTE = ["#0F380F", "#306230", "#8BAC0F", "#9BBC0F"];
+
+  const SPRITES = {
+    heart: [
+      ". 3 3 . 3 3 .",
+      "3 2 2 3 2 2 3",
+      "3 2 1 2 1 2 3",
+      "3 2 1 1 1 2 3",
+      ". 3 2 1 2 3 .",
+      ". . 3 2 3 . .",
+      ". . . 3 . . .",
+    ],
+    bot: [
+      ". 0 0 0 0 0 .",
+      "0 3 0 0 0 3 0",
+      "0 3 0 0 0 3 0",
+      "0 0 0 3 0 0 0",
+      "0 0 3 3 3 0 0",
+      ". 0 1 1 1 0 .",
+      ". 0 . 0 . 0 .",
+    ],
+  };
+
+  function renderSprite(el) {
+    const key = el.dataset.sprite;
+    const grid = SPRITES[key];
+    const u = 4; // 与 CSS --px-unit 同步：1 格 = 4px
+    const shadows = [];
+    grid.forEach((row, y) => {
+      row.trim().split(/\s+/).forEach((cell, x) => {
+        if (cell === ".") return;
+        const color = PALETTE[Number(cell)];
+        // 核心：每个"像素"= 一个 (x*u, y*u) 偏移、u×u 尺寸的阴影
+        shadows.push(`${x * u}px ${y * u}px 0 0 ${color}`);
+      });
+    });
+    el.style.boxShadow = shadows.join(",");
+  }
+  document.querySelectorAll(".sprite").forEach(renderSprite);
+
+  // ---- 血条格子生成：58% → 58 格亮 ----
+  const track = document.querySelector(".hp-track");
+  const TOTAL = 20, ON = Math.round(20 * 0.58);
+  for (let i = 0; i < TOTAL; i++) {
+    const cell = document.createElement("div");
+    cell.className = "hp-cell" + (i < ON ? " on" : "");
+    track.appendChild(cell);
+  }
+</script>
+</body>
+</html>
+```
+<!-- EMBED:END -->

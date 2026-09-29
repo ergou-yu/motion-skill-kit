@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>黏土拟态风格套件（Claymorphism）</title>
+<!--
+  黏土拟态（Claymorphism）套件：Michal Malewicz（Hype4）命名的
+  "软黏土 3D"风——morphism 三兄弟（neo/glass/clay）的第三位。
+  双击即可预览。三影配方（源自 The Plus Addons 教程原方）：
+    ① 外阴影 8px 8px 16px rgba(0,0,0,.25)   —— 黏土块落在桌上的投影
+    ② inset 暗影 -8px -8px 12px rgba(0,0,0,.25) —— 内侧下缘的体积暗部
+    ③ inset 亮影 8px 8px 12px rgba(255,255,255,.5) —— 内侧上缘的受光亮缘
+  超大圆角（25~50px）+ 粉彩底色 = "捏起来软软的"。
+-->
+<style>
+  /* ===== 设计 token 集中区 ===== */
+  :root {
+    --cl-bg:      #EEDFF4;    /* 粉紫底：黏土世界的底色，饱和度低 */
+    --cl-card:    #F6EDFA;    /* 卡片底：比背景浅一档，"同一块泥" */
+    --cl-coral:   #FF8FAB;    /* 珊瑚粉：点缀 */
+    --cl-lilac:   #B8A9F2;    /* 丁香紫 */
+    --cl-butter:  #FFD6A5;    /* 奶油黄 */
+    --cl-mint:    #9BE8C8;    /* 薄荷绿 */
+    --cl-text:    #5B4B6E;    /* 深紫灰文字 */
+    --cl-radius:  36px;       /* 超大圆角：黏土的"无棱角"世界 */
+    /* 三影配方：一行 var 搞定体积感，颜色随元素底色微调透明度 */
+    --cl-shadow:
+      8px 8px 16px rgba(91, 75, 110, 0.22),
+      inset -8px -8px 12px rgba(91, 75, 110, 0.14),
+      inset 8px 8px 12px rgba(255, 255, 255, 0.65);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Segoe UI", sans-serif;
+    background: var(--cl-bg);
+    color: var(--cl-text);
+    min-height: 100vh;
+    display: grid; place-items: center;
+    padding: 56px 20px;
+  }
+  .deck {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 44px; max-width: 880px; width: 100%;
+  }
+
+  /* ---- 黏土卡片：三影配方的直接应用 ---- */
+  .clay-card {
+    background: var(--cl-card);
+    border-radius: var(--cl-radius);
+    box-shadow: var(--cl-shadow);
+    padding: 32px 30px;
+    display: flex; flex-direction: column; gap: 16px;
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .clay-card:hover {
+    /* 悬停被"按一下再弹回"：回弹曲线是黏土手感的关键 */
+    transform: translateY(-6px) rotate(-0.5deg);
+  }
+  .clay-card h2 { font-size: 18px; }
+  .clay-card p  { font-size: 13.5px; line-height: 1.9; }
+
+  /* ---- 黏土图标：圆滚滚的底座 + 深一号的符号 ---- */
+  .clay-icon {
+    width: 62px; height: 62px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 26px;
+    background: var(--cl-coral);
+    box-shadow: var(--cl-shadow);
+  }
+  .clay-icon.purple { background: var(--cl-lilac); }
+  .clay-icon.butter { background: var(--cl-butter); }
+
+  /* ---- 黏土按钮：按下时阴影收成 inset，"指尖戳进黏土" ---- */
+  .clay-btn {
+    font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+    color: var(--cl-text);
+    background: var(--cl-mint);
+    border: none;
+    border-radius: 999px; /* 胶囊：黏土世界里没有直角 */
+    padding: 14px 30px;
+    box-shadow: var(--cl-shadow);
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+  .clay-btn:active {
+    /* inset 化 + 微缩：压力反馈 */
+    box-shadow:
+      inset 6px 6px 12px rgba(91, 75, 110, 0.2),
+      inset -6px -6px 10px rgba(255, 255, 255, 0.5);
+    transform: scale(0.96);
+  }
+  .clay-btn:focus-visible { outline: 3px dashed var(--cl-lilac); outline-offset: 4px; }
+
+  /* ---- 黏土进度条：凹槽（inset）+ 凸起滑头，两形态共用一套色 ---- */
+  .clay-track {
+    height: 16px; border-radius: 999px;
+    background: var(--cl-card);
+    box-shadow:
+      inset 5px 5px 10px rgba(91, 75, 110, 0.18),
+      inset -5px -5px 10px rgba(255, 255, 255, 0.6);
+    position: relative;
+  }
+  .clay-track::before {
+    content: ""; position: absolute; left: 4px; top: 4px; bottom: 4px;
+    width: 58%; border-radius: 999px;
+    background: var(--cl-coral);
+    box-shadow: inset 2px 2px 4px rgba(255,255,255,0.6);
+  }
+
+  /* ---- 演示区装饰：漂浮的黏土小球（慢速呼吸） ---- */
+  .float-dot {
+    position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+    animation: clay-breathe 7s ease-in-out infinite;
+  }
+  .float-dot.d1 { width: 120px; height: 120px; background: var(--cl-butter);
+    top: 12%; left: 6%; box-shadow: var(--cl-shadow); }
+  .float-dot.d2 { width: 74px; height: 74px; background: var(--cl-mint);
+    bottom: 14%; right: 8%; box-shadow: var(--cl-shadow); animation-delay: -3.5s; }
+  @keyframes clay-breathe {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50%      { transform: translateY(-18px) scale(1.04); }
+  }
+
+  /* 降级：漂浮呼吸与回弹停止，黏土的体积感（阴影）是静态属性、完整保留 */
+  @media (prefers-reduced-motion: reduce) {
+    .float-dot, .clay-card, .clay-btn { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="float-dot d1" aria-hidden="true"></div>
+<div class="float-dot d2" aria-hidden="true"></div>
+
+<div class="deck">
+  <section class="clay-card">
+    <div class="clay-icon">🌿</div>
+    <h2>三影配方</h2>
+    <p>外投影 + inset 暗部 + inset 亮缘，一招让任何色块变"软体"。圆角至少 25px，直角是黏土世界的违建。</p>
+    <button class="clay-btn">按我试试</button>
+  </section>
+
+  <section class="clay-card">
+    <div class="clay-icon purple">🫧</div>
+    <h2>粉彩纪律</h2>
+    <p>底色一律低饱和粉彩，点缀色四种封顶。黏土的高级感来自"软"和"淡"，加一个高饱和色立刻变塑料玩具。</p>
+    <div class="clay-track" role="progressbar" aria-valuenow="58" aria-label="示例进度"></div>
+  </section>
+
+  <section class="clay-card">
+    <div class="clay-icon butter">🧸</div>
+    <h2>回弹手感</h2>
+    <p>悬停与按下都用回弹曲线（cubic-bezier 1.56 过冲），位移很小但弹性十足——黏土交互的全部秘密。</p>
+    <button class="clay-btn" style="background: var(--cl-lilac);">再来一下</button>
+  </section>
+</div>
+
+</body>
+</html>

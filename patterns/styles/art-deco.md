@@ -1,0 +1,179 @@
+# Art Deco 装饰艺术（1920s Gatsby）
+
+> **ID** `art-deco` · **分类** styles · **性能** low-cost · **依赖** 无
+
+## Context
+
+1925 年巴黎装饰艺术博览会定名、Gatsby 时代推向极致的奢华装饰风：金色几何、建筑式对称、扇形纹样、放射线。适合高端酒店/餐饮/珠宝/威士忌/婚礼请柬/复古影院。风格关键词（源自风格指南）："1920s Gatsby elegance, geometric precision, metallic gold accents, architectural symmetry, luxury heritage"。
+
+## Approach
+
+- **设计 token**：墨黑（或深祖母绿 `#12281E`）底 + 香槟金三阶（高光金/主金/暗金）+ 象牙白文字；高对比衬线字体（Didot/Playfair，中文用宋体）。
+- **金属渐变**：`linear-gradient(180deg, 高光金 → 主金 → 暗金 → 高光金)` + `background-clip: text`——金属质感的本质是「高光在上、暗部在腰、反光在底」。
+- **几何母题**：扇形放射（`repeating-conic-gradient` 从底部散开的金线）、菱形结点（旋转 45° 的方块，Art Deco 的原子符号）、双线相框（外 border + inset 伪元素细线）、页首 sunburst 放射背景。
+- **对称纪律**：一切轴对称（标题、分隔线、卡片居中）——与手绘感孟菲斯最深的分野；字距 0.2~0.7em 的宽排。
+- **动效立场**：只有「吊灯摇曳」级的极缓慢明暗（金扇 8s 呼吸）和「上漆」级 hover（金漆背景从 0 高度长到 100%）。
+- **降级**：`prefers-reduced-motion` 停呼吸与上漆过渡——静态金色几何本身就是完整的 Art Deco。
+
+## Example
+
+<!-- EMBED:START:snippets/styles/art-deco.html -->
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Art Deco 装饰艺术风格套件（1920s Gatsby）</title>
+<!--
+  Art Deco 装饰艺术套件：1920s Gatsby 时代的奢华——
+  金色几何、建筑式对称、扇形纹样、放射线。
+  双击即可预览。风格要素（源自 Web UI 风格指南与素材站总结）：
+  "1920s Gatsby elegance, geometric precision, metallic gold accents,
+   architectural symmetry, luxury heritage"。
+  配色纪律：金 + 黑（或深绿/深蓝），克制即奢华。
+-->
+<style>
+  /* ===== 设计 token 集中区 ===== */
+  :root {
+    --ad-bg:     #0E0F0D;    /* 墨黑：夜色客厅 */
+    --ad-emerald:#12281E;    /* 深祖母绿：黑金之外的经典 Art Deco 底 */
+    --ad-gold:   #C9A227;    /* 主金：偏暗的香槟金，不是亮黄 */
+    --ad-gold-hi:#F2D57E;    /* 高光金：渐变上端 */
+    --ad-gold-lo:#8A6D1C;    /* 暗金：渐变下端 */
+    --ad-cream:  #F5EEDC;    /* 象牙白：文字，比纯白柔和昂贵 */
+    --ad-serif:  "Didot", "Playfair Display", Georgia, "Songti SC", serif; /* 高对比衬线：时尚刊物质感 */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--ad-serif);
+    background:
+      /* 背景放射线：从页首中心散开的 sunburst，Art Deco 的天花板 */
+      repeating-conic-gradient(from -90deg at 50% -10%,
+        rgba(201, 162, 39, 0.06) 0deg 4deg, transparent 4deg 12deg),
+      radial-gradient(ellipse at 50% 0%, var(--ad-emerald) 0%, var(--ad-bg) 62%);
+    color: var(--ad-cream);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 72px 20px 64px; gap: 40px;
+  }
+
+  /* ---- 金色渐变文字：金属质感 = 多停靠渐变 + 高光在上 ---- */
+  .gold {
+    background: linear-gradient(180deg,
+      var(--ad-gold-hi) 0%, var(--ad-gold) 45%, var(--ad-gold-lo) 78%, var(--ad-gold-hi) 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* ---- 标题区：完全轴对称——Art Deco 的建筑纪律 ---- */
+  .hero { text-align: center; position: relative; }
+  .hero .over-title {
+    font-size: 13px; letter-spacing: 0.7em; text-indent: 0.7em; /* indent 补偿最后一个字的字距，严格居中 */
+    text-transform: uppercase; margin-bottom: 18px;
+  }
+  .hero h1 {
+    font-size: clamp(44px, 9vw, 92px);
+    font-weight: 500; letter-spacing: 0.12em;
+    line-height: 1.05;
+  }
+  /* 扇形（fan）纹样：conic 重复做放射扇叶，金线极细 */
+  .fan {
+    width: 220px; height: 84px; margin: 26px auto 0;
+    background: repeating-conic-gradient(from 270deg at 50% 100%,
+      var(--ad-gold) 0deg 2deg, transparent 2deg 12deg);
+    opacity: 0.85;
+    /* 呼吸：金扇极缓慢明暗，像吊灯摇曳；幅度必须小 */
+    animation: chandelier 8s ease-in-out infinite;
+  }
+  @keyframes chandelier { 0%, 100% { opacity: 0.65; } 50% { opacity: 0.95; } }
+
+  /* ---- 分隔线：菱形 + 双线，Art Deco 的"段落标点" ---- */
+  .divider {
+    display: flex; align-items: center; gap: 14px;
+    width: min(520px, 86vw); margin: 0 auto;
+  }
+  .divider::before, .divider::after {
+    content: ""; flex: 1; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--ad-gold));
+  }
+  .divider::after { background: linear-gradient(90deg, var(--ad-gold), transparent); }
+  .divider .diamond {
+    width: 9px; height: 9px; background: var(--ad-gold);
+    transform: rotate(45deg);           /* 菱形：旋转 45° 的方块，Art Deco 的原子符号 */
+  }
+  .divider .diamond.mid { width: 13px; height: 13px; }
+
+  /* ---- 卡片：金线几何框（双线边框 + 内衬线），像相框 ---- */
+  .frame {
+    position: relative;
+    width: min(680px, 92vw);
+    padding: 40px 44px;
+    text-align: center;
+  }
+  /* 双线框实现：外层 border + 内层 ::before 的 inset 细线 */
+  .frame::before {
+    content: ""; position: absolute; inset: 0;
+    border: 1px solid var(--ad-gold);
+  }
+  .frame::after {
+    content: ""; position: absolute; inset: 7px;
+    border: 1px solid rgba(201, 162, 39, 0.5);
+    pointer-events: none;
+  }
+  .frame h2 { font-size: 24px; font-weight: 500; letter-spacing: 0.2em; margin-bottom: 14px; }
+  .frame p  { font-size: 15px; line-height: 2.1; color: #cfc4a8; font-family: Georgia, "Songti SC", serif; }
+
+  /* ---- 按钮：金线描边胶囊，hover 时金漆缓缓填满 ---- */
+  .ad-btn {
+    font-family: var(--ad-serif); font-size: 14px; letter-spacing: 0.34em; text-indent: 0.34em;
+    text-transform: uppercase; cursor: pointer;
+    color: var(--ad-gold-hi);
+    background: linear-gradient(180deg, var(--ad-gold), var(--ad-gold)) no-repeat 0 0 / 100% 0;
+    border: 1px solid var(--ad-gold);
+    padding: 15px 42px;
+    transition: background-size 0.5s ease, color 0.5s ease;
+  }
+  .ad-btn:hover {
+    /* 背景金漆从 0 高度长到 100%：上漆的过程本身就是仪式 */
+    background-size: 100% 100%;
+    color: var(--ad-bg);
+  }
+  .ad-btn:focus-visible { outline: 2px dashed var(--ad-gold-hi); outline-offset: 4px; }
+
+  /* 降级：吊灯呼吸与金漆过渡停止——静态的金色几何本身就是完整的 Art Deco */
+  @media (prefers-reduced-motion: reduce) {
+    .fan { animation: none !important; }
+    .ad-btn { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="over-title gold">Maison&nbsp;Dorée&nbsp;·&nbsp;Est.&nbsp;1925</div>
+  <h1 class="gold">THE&nbsp;GILDED<br>AGE</h1>
+  <div class="fan" aria-hidden="true"></div>
+</header>
+
+<div class="divider" aria-hidden="true">
+  <span class="diamond"></span><span class="diamond mid"></span><span class="diamond"></span>
+</div>
+
+<section class="frame">
+  <h2 class="gold">Symmetry&nbsp;&amp;&nbsp;Gold</h2>
+  <p>
+    金属渐变（高光金→暗金）承担所有奢华，几何承担所有装饰：扇形放射、
+    菱形结点、双线相框。一切严格轴对称——Art Deco 的美来自建筑般的秩序，
+    这也是它与手绘感的孟菲斯最深的分野。
+  </p>
+  <div style="margin-top: 30px;">
+    <button class="ad-btn">Reserve</button>
+  </div>
+</section>
+
+</body>
+</html>
+```
+<!-- EMBED:END -->

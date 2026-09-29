@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>赛博朋克风格套件（Cyberpunk / HUD）</title>
+<!--
+  赛博朋克风格套件：霓虹雨夜 + CRT 显示器 + HUD 界面。
+  双击即可预览。风格要素（源自 retro UI 教程总结）：
+  堆叠 text-shadow 霓虹、CRT 扫描线覆盖层、clip-path 切角 HUD 面板、
+  等宽字体、glitch 干扰。
+  与 vaporwave 的分界（studio2am 规则文）：cyberpunk = 冷色、CRT 辉光、HUD 面板；
+  vaporwave = 落日、网格地平线、VHS。
+-->
+<style>
+  /* ===== 设计 token 集中区 ===== */
+  :root {
+    --cp-bg:     #05060E;    /* 雨夜深蓝黑 */
+    --cp-cyan:   #00F0FF;    /* 电光青：霓虹主色 */
+    --cp-magenta:#FF2A6D;    /* 霓虹粉：对撞色 */
+    --cp-yellow: #FCEE0A;    /* 警示黄：少量点缀（HUD 警报感） */
+    --cp-panel:  rgba(0, 240, 255, 0.05);  /* 面板底 */
+    --cp-line:   rgba(0, 240, 255, 0.4);   /* HUD 线框 */
+    --cp-mono:   "Courier New", ui-monospace, Menlo, monospace; /* 等宽：终端/HUD 的身份 */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--cp-mono);
+    background:
+      /* 背景网格：城市平面图式的暗青网格 */
+      linear-gradient(rgba(0,240,255,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,240,255,0.05) 1px, transparent 1px),
+      radial-gradient(ellipse at 50% 120%, #0d1b3a 0%, var(--cp-bg) 60%);
+    background-size: 48px 48px, 48px 48px, 100% 100%;
+    color: #cfe8ef;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 64px 20px; gap: 40px;
+  }
+
+  /* ---- CRT 扫描线覆盖层：全屏固定的"显示器质感" ---- */
+  .scanlines {
+    position: fixed; inset: 0; pointer-events: none; z-index: 60;
+    /* 横向细条纹：1px 亮线 + 3px 暗线，透明度极低——是质感不是条纹衫 */
+    background: repeating-linear-gradient(
+      180deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 4px);
+  }
+  /* CRT 闪烁：整屏亮度极缓慢起伏，老显示器的呼吸 */
+  .scanlines::after {
+    content: ""; position: absolute; inset: 0;
+    background: rgba(0, 240, 255, 0.015);
+    animation: crt-flicker 4s steps(12) infinite;
+  }
+  @keyframes crt-flicker {
+    0%, 100% { opacity: 0.4; } 42% { opacity: 1; } 43% { opacity: 0.2; } 44% { opacity: 0.8; }
+  }
+
+  /* ---- 霓虹标题：同色 text-shadow 堆三层 = 灯管发光衰减 ---- */
+  .neon-title {
+    font-size: clamp(38px, 8vw, 84px);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: #eafcff;
+    text-shadow:
+      0 0 8px  rgba(0, 240, 255, 0.9),
+      0 0 24px rgba(0, 240, 255, 0.5),
+      0 0 68px rgba(0, 240, 255, 0.3);
+  }
+  /* 副标霓虹换品红：双色霓虹是赛博朋克的招牌对撞 */
+  .neon-sub {
+    color: var(--cp-magenta);
+    letter-spacing: 0.5em; font-size: 13px;
+    text-shadow: 0 0 10px rgba(255,42,109,0.8), 0 0 32px rgba(255,42,109,0.4);
+  }
+
+  /* ---- HUD 面板：切角 + 细线框 + 角标，"平视显示器"的网页化 ---- */
+  .hud {
+    position: relative;
+    width: min(640px, 92vw);
+    padding: 28px 32px;
+    background: var(--cp-panel);
+    border: 1px solid var(--cp-line);
+    /* 切角：左上/右下各切 14px——HUD 的"不是矩形"识别度全靠它 */
+    clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+    backdrop-filter: blur(3px);
+  }
+  /* 切角后被裁掉的边框补角标：四角短线，HUD 的仪式感 */
+  .hud::before {
+    content: ""; position: absolute; inset: 6px; pointer-events: none;
+    background:
+      linear-gradient(var(--cp-cyan), var(--cp-cyan)) left top / 14px 2px,
+      linear-gradient(var(--cp-cyan), var(--cp-cyan)) left top / 2px 14px,
+      linear-gradient(var(--cp-cyan), var(--cp-cyan)) right bottom / 14px 2px,
+      linear-gradient(var(--cp-cyan), var(--cp-cyan)) right bottom / 2px 14px;
+    background-repeat: no-repeat;
+    opacity: 0.85;
+  }
+  .hud .hud-tag {
+    display: inline-block; font-size: 11px; letter-spacing: 0.3em;
+    color: var(--cp-yellow);
+    border: 1px solid rgba(252, 238, 10, 0.5);
+    padding: 3px 10px; margin-bottom: 14px;
+  }
+  .hud h3 {
+    color: var(--cp-cyan); font-size: 17px; letter-spacing: 0.14em; margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .hud p { font-size: 13.5px; line-height: 2; color: #9fc4cf; }
+
+  /* ---- 数据行：HUD 的"读数"语言 ---- */
+  .stats { display: flex; gap: 34px; margin-top: 18px; flex-wrap: wrap; }
+  .stat b { display: block; font-size: 26px; color: #fff; text-shadow: 0 0 12px rgba(0,240,255,0.7); }
+  .stat span { font-size: 11px; letter-spacing: 0.2em; color: #6f9aa8; }
+
+  /* ---- glitch 按钮：hover 时 RGB 错位闪一下 ---- */
+  .btn-row { display: flex; gap: 20px; flex-wrap: wrap; }
+  .cp-btn {
+    font-family: var(--cp-mono); font-size: 14px; letter-spacing: 0.2em; text-transform: uppercase;
+    cursor: pointer; color: var(--cp-cyan);
+    background: transparent;
+    border: 1px solid var(--cp-cyan);
+    padding: 14px 30px;
+    /* 切角按钮：只切一个角，和面板语言统一 */
+    clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
+    text-shadow: 0 0 10px rgba(0,240,255,0.7);
+    box-shadow: inset 0 0 18px rgba(0,240,255,0.12);
+    transition: all 0.15s steps(2); /* steps：数字式的跳变，不是平滑渐变 */
+  }
+  .cp-btn:hover {
+    background: rgba(0,240,255,0.14);
+    box-shadow: inset 0 0 24px rgba(0,240,255,0.3), 0 0 22px rgba(0,240,255,0.4);
+  }
+  .cp-btn.alt { color: var(--cp-magenta); border-color: var(--cp-magenta);
+    text-shadow: 0 0 10px rgba(255,42,109,0.7); }
+  .cp-btn:focus-visible { outline: 2px dashed var(--cp-yellow); outline-offset: 4px; }
+
+  /* ---- 干扰条：偶发的横向错位条，"信号不稳"的戏剧性 ---- */
+  .neon-title { position: relative; }
+  .neon-title::after {
+    content: ""; position: absolute; left: -4%; right: -4%; top: 55%; height: 3px;
+    background: rgba(255, 42, 109, 0.6);
+    transform: scaleX(0);
+    animation: signal-cut 6s steps(1) infinite;
+  }
+  @keyframes signal-cut {
+    0%, 91%, 96%, 100% { transform: scaleX(0); }
+    92% { transform: scaleX(1) translateX(3%); }
+    94% { transform: scaleX(0.6) translateX(-2%); }
+  }
+
+  /* 降级：CRT 闪烁/干扰条/扫描线动画全停——静态霓虹 + HUD 版面完整成立 */
+  @media (prefers-reduced-motion: reduce) {
+    .scanlines::after, .neon-title::after { animation: none !important; display: none; }
+    .cp-btn { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="scanlines" aria-hidden="true"></div>
+
+<div class="neon-title">NIGHT&nbsp;CITY</div>
+<div class="neon-sub">// system online</div>
+
+<div class="hud">
+  <span class="hud-tag">SYS.04 // 直连就绪</span>
+  <h3>Neural Interface</h3>
+  <p>霓虹灯管 = 同色 text-shadow 堆三层衰减；HUD 面板 = clip-path 切角 + 细线框 + 角标；
+     CRT 质感 = 全屏 1px 扫描线 + 缓慢闪烁。三件套齐了，页面就"入夜"了。</p>
+  <div class="stats">
+    <div class="stat"><b>87%</b><span>SIGNAL</span></div>
+    <div class="stat"><b>0.4s</b><span>LATENCY</span></div>
+    <div class="stat"><b>2077</b><span>SESSION</span></div>
+  </div>
+</div>
+
+<div class="btn-row">
+  <button class="cp-btn">Jack In</button>
+  <button class="cp-btn alt">断开连接</button>
+</div>
+
+</body>
+</html>

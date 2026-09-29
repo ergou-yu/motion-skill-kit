@@ -1,6 +1,6 @@
 ---
 name: motion-skill-kit
-description: 前端艺术动效代码片段库。只要任务涉及前端页面开发（组件、页面、落地页、官网、H5、后台界面改版等）就应主动使用本 skill 做视觉决策；当用户要求炫酷页面、艺术感官网、动效背景、生成艺术、光标特效、滚动叙事、文字动效、图片特效、页面转场，或指定艺术风格（孟菲斯、蒸汽波、Y2K、新拟态、玻璃拟态、欧普、粗野主义、瑞士网格、印象派/梵高/莫奈笔触、浮世绘、包豪斯、波普）时必须使用。包含 42 个经过验证、零第三方依赖、带 prefers-reduced-motion 降级的可注入片段（动效 29 + 艺术风格套件 13）。用户未指明风格时，按「自动选型策略」自行选择；用户指定的风格未收录时，按「未收录风格的扩展流程」联网搜索教程、实现并回写入库（skill 自我增长）。
+description: 前端艺术动效代码片段库。只要任务涉及前端页面开发（组件、页面、落地页、官网、H5、后台界面改版等）就应主动使用本 skill 做视觉决策；当用户要求炫酷页面、艺术感官网、动效背景、生成艺术、光标特效、滚动叙事、文字动效、图片特效、页面转场，或指定艺术风格（孟菲斯、蒸汽波、Y2K、新拟态、玻璃拟态、欧普、粗野主义、瑞士网格、印象派/梵高/莫奈笔触、浮世绘、包豪斯、波普、酸性设计、赛博朋克、Frutiger Aero、黏土拟态、Art Deco、新中式水墨、像素风）时必须使用。包含 49 个经过验证、零第三方依赖、带 prefers-reduced-motion 降级的可注入片段（动效 29 + 艺术风格套件 20）。用户未指明风格时，按「自动选型策略」自行选择；用户指定的风格未收录时，按「未收录风格的扩展流程」联网搜索教程、实现并回写入库（skill 自我增长）。
 ---
 
 # motion-skill-kit：前端艺术动效片段库
@@ -108,7 +108,7 @@ description: 前端艺术动效代码片段库。只要任务涉及前端页面�
 | 页面转场 | `patterns/transitions/` | page-wipe（遮罩擦除）、shared-element（共享元素 FLIP）、fade-slide-route（路由淡入滑动） |
 | 生成艺术 | `patterns/generative-art/` | p5-flow-field（p5 流场）、seeded-random（种子随机）、canvas-noise-field（Perlin 噪声场） |
 | 着色器 | `patterns/shaders/` | fragment-ripple（波纹）、noise-cloud-shader（fbm 云雾）、gradient-mesh-shader（plasma 渐变网格） |
-| 艺术风格 | `patterns/styles/` | memphis-design（孟菲斯）、vaporwave（蒸汽波）、y2k-chrome（Y2K 铬感）、neumorphism（新拟态）、glassmorphism（玻璃拟态）、op-art（欧普视错觉⚠️光敏警告）、brutalism（粗野主义）、swiss-grid（瑞士网格）、impressionism（莫奈点彩）、van-gogh-swirl（梵高星夜）、ukiyo-e（浮世绘）、bauhaus（包豪斯）、pop-art（波普丝网） |
+| 艺术风格 | `patterns/styles/` | memphis-design（孟菲斯）、vaporwave（蒸汽波）、y2k-chrome（Y2K 铬感）、neumorphism（新拟态）、glassmorphism（玻璃拟态）、op-art（欧普视错觉⚠️光敏警告）、brutalism（粗野主义）、swiss-grid（瑞士网格）、impressionism（莫奈点彩）、van-gogh-swirl（梵高星夜）、ukiyo-e（浮世绘）、bauhaus（包豪斯）、pop-art（波普丝网）、acid-graphics（酸性设计）、cyberpunk（赛博朋克）、frutiger-aero（Web 2.0 光泽）、claymorphism（黏土拟态）、art-deco（装饰艺术）、ink-wash（新中式水墨）、pixel-art（像素风） |
 
 ### 艺术风格的使用方式（styles 类特别说明）
 

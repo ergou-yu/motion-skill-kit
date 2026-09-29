@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "updated": "2026-09-15",
   "categories": {
     "backgrounds": "背景动效：粒子、流场、渐变、噪声、极光",
@@ -10,7 +10,7 @@
     "transitions": "页面转场：擦除、共享元素、路由淡入",
     "generative-art": "生成艺术：流场、种子随机、噪声场",
     "shaders": "GLSL 着色器：波纹、云雾、plasma",
-    "styles": "艺术风格套件：孟菲斯/蒸汽波/Y2K/新拟态/玻璃拟态/欧普/粗野/瑞士/印象派/梵高/浮世绘/包豪斯/波普"
+    "styles": "艺术风格套件：孟菲斯/蒸汽波/Y2K/新拟态/玻璃拟态/欧普/粗野/瑞士/印象派/梵高/浮世绘/包豪斯/波普/酸性/赛博朋克/Frutiger Aero/黏土拟态/Art Deco/新中式水墨/像素风"
   },
   "snippets": [
     {
@@ -516,6 +516,90 @@
       "doc": "patterns/styles/pop-art.md",
       "performance": "low-cost",
       "reducedMotionFallback": "文字跳动停止（四宫格丝网本身是静态版画）"
+    },
+    {
+      "id": "acid-graphics",
+      "name": "酸性设计风格套件",
+      "category": "styles",
+      "tags": ["酸性设计", "acid graphics", "液态金属", "铬字", "荧光", "迷幻", "音乐节", "潮牌", "地下"],
+      "tech": ["css", "svg"],
+      "dependencies": [],
+      "files": ["snippets/styles/acid-graphics.html"],
+      "doc": "patterns/styles/acid-graphics.md",
+      "performance": "low-cost",
+      "reducedMotionFallback": "重影/高光/噪点抖动停止（静态铬字海报成立）"
+    },
+    {
+      "id": "cyberpunk",
+      "name": "赛博朋克风格套件",
+      "category": "styles",
+      "tags": ["赛博朋克", "cyberpunk", "霓虹", "CRT", "扫描线", "HUD", "夜之城", "游戏", "电竞"],
+      "tech": ["css"],
+      "dependencies": [],
+      "files": ["snippets/styles/cyberpunk.html"],
+      "doc": "patterns/styles/cyberpunk.md",
+      "performance": "low-cost",
+      "reducedMotionFallback": "停闪烁与干扰条（静态霓虹+HUD 版面成立）"
+    },
+    {
+      "id": "frutiger-aero",
+      "name": "Frutiger Aero 风格套件",
+      "category": "styles",
+      "tags": ["Frutiger Aero", "Web 2.0", "Vista", "Aqua", "水珠", "气泡", "光泽", "清新", "环保", "怀旧"],
+      "tech": ["css"],
+      "dependencies": [],
+      "files": ["snippets/styles/frutiger-aero.html"],
+      "doc": "patterns/styles/frutiger-aero.md",
+      "performance": "low-cost",
+      "reducedMotionFallback": "停云漂/珠浮（静态晴空构图完整）"
+    },
+    {
+      "id": "claymorphism",
+      "name": "黏土拟态风格套件",
+      "category": "styles",
+      "tags": ["黏土拟态", "claymorphism", "软黏土", "粉彩", "圆角", "回弹", "教育", "儿童", "游戏化"],
+      "tech": ["css"],
+      "dependencies": [],
+      "files": ["snippets/styles/claymorphism.html"],
+      "doc": "patterns/styles/claymorphism.md",
+      "performance": "low-cost",
+      "reducedMotionFallback": "停呼吸漂浮与回弹（体积感阴影完整保留）"
+    },
+    {
+      "id": "art-deco",
+      "name": "Art Deco 装饰艺术套件",
+      "category": "styles",
+      "tags": ["Art Deco", "装饰艺术", "盖茨比", "Gatsby", "金色", "1920s", "奢华", "对称", "酒店", "珠宝"],
+      "tech": ["css"],
+      "dependencies": [],
+      "files": ["snippets/styles/art-deco.html"],
+      "doc": "patterns/styles/art-deco.md",
+      "performance": "low-cost",
+      "reducedMotionFallback": "停吊灯呼吸与上漆过渡（静态金色几何完整成立）"
+    },
+    {
+      "id": "ink-wash",
+      "name": "新中式水墨风格套件",
+      "category": "styles",
+      "tags": ["新中式", "水墨", "留白", "宣纸", "朱砂", "东方", "国风", "茶", "文创", "文旅"],
+      "tech": ["css", "svg"],
+      "dependencies": [],
+      "files": ["snippets/styles/ink-wash.html"],
+      "doc": "patterns/styles/ink-wash.md",
+      "performance": "low-cost",
+      "reducedMotionFallback": "停墨晕呼吸（静态浓淡布局即完整水墨构图）"
+    },
+    {
+      "id": "pixel-art",
+      "name": "像素风风格套件",
+      "category": "styles",
+      "tags": ["像素风", "pixel art", "复古游戏", "8-bit", "Game Boy", "像素画", "box-shadow", "极客", "怀旧"],
+      "tech": ["css", "js"],
+      "dependencies": ["Press Start 2P 字体 (Google Fonts CDN，可移除)"],
+      "files": ["snippets/styles/pixel-art.html"],
+      "doc": "patterns/styles/pixel-art.md",
+      "performance": "low-cost",
+      "reducedMotionFallback": "停血条闪烁（风格本身即无动画美学）"
     }
   ]
 }

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>酸性设计风格套件（Acid Graphics）</title>
+<!--
+  酸性设计（Acid Graphics / Acid Design）套件：
+  源自 1960s 迷幻艺术，Y2K 复兴的下一阶段（"Y2K Grunge"）。
+  双击即可预览。风格要素（源自 Aesthetics Wiki / 设计趋势文总结）：
+  液态金属铬字 + 荧光高彩 + 迷幻扭曲 + 脏纹理底。
+  适用：电子音乐节、街头潮牌、前卫艺术；不适用：大众消费与商务场景。
+  注意：与 vaporwave 的分界——酸性是"化学实验室的迷幻"，vaporwave 是"落日的怀旧"。
+-->
+<style>
+  /* ===== 设计 token 集中区 ===== */
+  :root {
+    --ac-bg:      #0B0B0F;   /* 近黑底：酸性一切高彩都压在夜里 */
+    --ac-acid:    #C6FF00;   /* 酸性绿：风格签名色，像实验室的荧光试剂 */
+    --ac-magenta: #FF2E88;   /* 荧光品红 */
+    --ac-violet:  #8A2BE2;   /* 迷幻紫 */
+    --ac-silver:  #E8E8EC;   /* 铬银 */
+    --ac-noise:   0.07;      /* 脏纹理透明度：脏一点才"地下"，干净就变 Y2K */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Arial Black", "PingFang SC", sans-serif;
+    background: var(--ac-bg);
+    color: #eee;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 72px 20px; gap: 44px;
+    overflow-x: hidden;
+  }
+
+  /* ---- 脏纹理底：feTurbulence 噪点 + 抖动，"地下刊物"质感 ---- */
+  .grunge {
+    position: fixed; inset: -50%; width: 200%; height: 200%;
+    pointer-events: none; z-index: 40; opacity: var(--ac-noise);
+    mix-blend-mode: screen; /* screen 叠加：噪点只提亮，不弄脏荧光色 */
+    animation: grunge-jitter 0.7s steps(3) infinite;
+  }
+  @keyframes grunge-jitter {
+    0% { transform: translate(0,0); } 33% { transform: translate(-2%,2%); }
+    66% { transform: translate(2%,-1%); } 100% { transform: translate(0,0); }
+  }
+
+  /* ---- 液态铬字：酸性设计的绝对主角 ----
+     铬 = 多停靠渐变模拟金属反射（银→深灰→白高光）；
+     "液态"感来自字后的扭曲重影 + 斜高光的缓慢扫动 */
+  .acid-title {
+    position: relative;
+    font-size: clamp(44px, 10vw, 108px);
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    /* 铬渐变：亮-暗-亮三段反射，比 Y2K 的蓝银更冷更工业 */
+    background: linear-gradient(180deg,
+      #ffffff 0%, #c9c9d6 22%, #3a3a4a 42%, #16161f 50%,
+      #55556a 58%, #d6d6e4 80%, #ffffff 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* 对比度补救（教程指出铬字中间灰达不到 4.5:1）：重影层提字廓 */
+    filter: drop-shadow(0 2px 0 rgba(198, 255, 0, 0.35));
+  }
+  .acid-title::before {
+    /* 液态重影：同文案错位扭曲叠在后面，酸性字"熔化"的观感来源 */
+    content: attr(data-text);
+    position: absolute; left: 0; top: 0; z-index: -1;
+    color: var(--ac-magenta);
+    transform: translate(6px, 6px) skewX(-8deg) scaleY(1.04);
+    opacity: 0.55;
+    filter: blur(2px);
+    animation: acid-melt 5s ease-in-out infinite alternate;
+  }
+  .acid-title::after {
+    /* 斜高光扫过：光源移动，金属才"活" */
+    content: attr(data-text);
+    position: absolute; inset: 0;
+    background: linear-gradient(105deg, transparent 42%, rgba(255,255,255,0.85) 50%, transparent 58%);
+    background-size: 240% 100%;
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: acid-shine 3.6s ease-in-out infinite;
+  }
+  @keyframes acid-melt {
+    from { transform: translate(4px, 4px) skewX(-6deg) scaleY(1.02); }
+    to   { transform: translate(9px, 8px) skewX(-11deg) scaleY(1.07); }
+  }
+  @keyframes acid-shine {
+    0% { background-position: 130% 0; } 100% { background-position: -130% 0; }
+  }
+
+  .sub {
+    color: var(--ac-acid);
+    letter-spacing: 0.55em; font-size: 13px;
+    text-transform: uppercase;
+    /* 荧光色要"自发光"：同色 text-shadow 堆两层 */
+    text-shadow: 0 0 10px rgba(198,255,0,0.7), 0 0 30px rgba(198,255,0,0.4);
+  }
+
+  /* ---- 跑马灯字带：酸性排版的"信息轰炸" ---- */
+  .ticker {
+    width: 100vw; margin-left: calc(50% - 50vw);
+    border-top: 1px solid rgba(198,255,0,0.4);
+    border-bottom: 1px solid rgba(198,255,0,0.4);
+    padding: 10px 0; overflow: hidden; white-space: nowrap;
+    color: var(--ac-acid); font-size: 14px; letter-spacing: 0.3em;
+  }
+  .ticker span {
+    display: inline-block; padding-left: 100%;
+    animation: ticker-run 12s linear infinite;
+  }
+  @keyframes ticker-run { to { transform: translateX(-100%); } }
+
+  /* ---- 荧光药丸按钮：荧光描边 + 内发光，像贴了荧光标签 ---- */
+  .pill-row { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+  .pill {
+    font-family: inherit; font-size: 14px; letter-spacing: 0.18em; text-transform: uppercase;
+    cursor: pointer; color: var(--ac-acid);
+    background: transparent;
+    border: 2px solid var(--ac-acid);
+    border-radius: 999px;
+    padding: 14px 32px;
+    /* 荧光的秘诀：外发光 box-shadow 同色多圈 + 内侧再一圈亮缘 */
+    box-shadow: 0 0 18px rgba(198,255,0,0.35), inset 0 0 12px rgba(198,255,0,0.18);
+    transition: all 0.2s;
+  }
+  .pill:hover {
+    background: var(--ac-acid); color: var(--ac-bg);
+    box-shadow: 0 0 34px rgba(198,255,0,0.7);
+  }
+  .pill.alt { color: var(--ac-magenta); border-color: var(--ac-magenta);
+    box-shadow: 0 0 18px rgba(255,46,136,0.35), inset 0 0 12px rgba(255,46,136,0.18); }
+  .pill.alt:hover { background: var(--ac-magenta); color: var(--ac-bg); }
+  .pill:focus-visible { outline: 2px dashed #fff; outline-offset: 4px; }
+
+  /* ---- 迷幻条纹卡：底纹用双色 repeating 条纹制造眩晕 ---- */
+  .card {
+    width: min(560px, 92vw);
+    padding: 26px 30px;
+    position: relative;
+    /* 底：品红-紫双色斜条纹，透明度压低避免抢字 */
+    background: repeating-linear-gradient(45deg,
+      rgba(255,46,136,0.10) 0 14px, rgba(138,43,226,0.10) 14px 28px);
+    border: 1px solid rgba(198,255,0,0.5);
+    border-radius: 4px; /* 酸性不爱大圆角：2~6px 的工业直角感 */
+  }
+  .card h3 {
+    color: var(--ac-silver); font-size: 18px; letter-spacing: 0.1em; margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .card p { font-size: 14px; line-height: 1.9; color: #b9b9c6; font-weight: normal; }
+
+  /* 降级：重影/高光/跑马灯/噪点抖动全部停止——静态铬字海报依然成立 */
+  @media (prefers-reduced-motion: reduce) {
+    .acid-title::before, .acid-title::after,
+    .grunge, .ticker span { animation: none !important; }
+    .pill { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<svg class="grunge" aria-hidden="true">
+  <filter id="grungeF"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/></filter>
+  <rect width="100%" height="100%" filter="url(#grungeF)"/>
+</svg>
+
+<div class="acid-title" data-text="ACID">Acid</div>
+<div class="sub">liquid chrome · 荧光 · 迷幻</div>
+
+<div class="ticker" aria-hidden="true">
+  <span>RAVE ✦ 1994 ✦ CHROME ✦ 荧光试剂 ✦ UNDERGROUND ✦ RAVE ✦ 1994 ✦ CHROME ✦ 荧光试剂 ✦ UNDERGROUND ✦&nbsp;</span>
+</div>
+
+<div class="pill-row">
+  <button class="pill">Enter Rave</button>
+  <button class="pill alt">地下入口</button>
+</div>
+
+<div class="card">
+  <h3>配方说明</h3>
+  <p>
+    液态铬字（多停靠渐变 + 熔化重影）× 荧光高彩（酸性绿的"自发光"阴影）× 脏纹理（screen 混合的噪点抖动）。
+    酸性的密度要高、信息要轰炸——但荧光色全页最多两种，多了是圣诞树不是实验室。
+  </p>
+</div>
+
+</body>
+</html>
