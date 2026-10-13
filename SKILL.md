@@ -73,13 +73,15 @@ description: 前端艺术动效代码片段库。只要任务涉及前端页面�
 - 先给用户预览 demo，确认风格方向正确后再注入实际项目；
 - 注入时同样只改 token 区，不动实现。
 
-### 第 4 步：回写入库（skill 增长）
+### 第 4 步：回写入库（skill 增长——不可省略）
 
 1. snippet 放 `snippets/styles/<id>.html`；
 2. 文档放 `patterns/styles/<id>.md`，三段式 Context（风格历史与适用场景，注明资料来源）/ Approach（token + 铁律 + 降级）/ Example（写 EMBED 锚点，见 README）；
 3. `data/index.json` 的 `snippets` 数组追加记录（tags 里包含风格的中英文名与别名）；
 4. 若是全新分类（不只是 styles），同步更新 `scripts/validate.ts` 的 `CATEGORIES` 白名单与 `SKILL.md` 导航表；
-5. 跑 `npm run build:docs && npm run validate`，全绿即入库完成，并告知用户「该风格已收录，下次可直接点名使用」。
+5. 跑 `npm run build:docs && npm run validate`，全绿即入库；
+6. **必须 git commit 并 push**（仓库 skill 版本号 +0.0.1）。注意：ZCode 的安装路径 `~/.zcode/skills/motion-skill-kit` 是指向本仓库的符号链接——直接在该路径下回写并提交即可，所有副本自动同步。只交付页面不回写 = 这次进化的成果丢失；
+7. 告知用户「该风格已收录（commit <hash>），下次可直接点名使用」。
 
 ### 扩展的纪律
 
@@ -140,3 +142,4 @@ styles 类与效果类不同：它交付的是**整套设计语言**（色板 to
 - [ ] `prefers-reduced-motion` 降级分支是否保留
 - [ ] 移动端是否按 pattern 文档的 Approach 段做了降级（如降低粒子数、禁用 hover 类效果）
 - [ ] 是否向用户说明了降级表现与性能级别
+- [ ] **若本次为用户实现了库中不存在的风格/效果：是否已按「未收录风格的扩展流程」回写入库并 commit？**（没有回写 = 进化成果丢失，这是本 skill 的核心闭环）
