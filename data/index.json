@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.1.1",
   "updated": "2026-09-15",
   "categories": {
     "backgrounds": "背景动效：粒子、流场、渐变、噪声、极光",
@@ -600,6 +600,18 @@
       "doc": "patterns/styles/pixel-art.md",
       "performance": "low-cost",
       "reducedMotionFallback": "停血条闪烁（风格本身即无动画美学）"
+    },
+    {
+      "id": "chinese-horror",
+      "name": "中式恐怖风格套件",
+      "category": "styles",
+      "tags": ["中式恐怖", "Chinese Horror", "纸嫁衣", "恐怖", "惊悚", "红烛", "符纸", "纸人", "暗黑", "悬疑", "密室"],
+      "tech": ["css"],
+      "dependencies": [],
+      "files": ["snippets/styles/chinese-horror.html"],
+      "doc": "patterns/styles/chinese-horror.md",
+      "performance": "low-cost",
+      "reducedMotionFallback": "scare 惊吓彻底移除（光敏红线）、烛火/灯笼/不安全停（静物恐怖成立）"
     }
   ]
 }
