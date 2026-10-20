@@ -1,10 +1,11 @@
 # motion-skill-kit
 
-前端艺术动效代码片段库 + Agent Skill。让你（或 AI Agent）在生成前端页面时，快速检索并注入**经过验证的动效代码片段与艺术风格套件**，提升 AI 产出页面的视觉质感。
+前端视觉设计与艺术动效 Agent Skill。先处理页面的任务、层级、布局、文字、颜色与状态，再按需检索动效代码片段和艺术风格套件。
 
-- **50 个片段**：18 个 React `.tsx`（Next.js App Router 兼容）+ 31 个原生 HTML 单文件（双击即可预览）
-- **9 大分类**：背景 / 文字 / 光标 / 滚动 / 图片 / 转场 / 生成艺术 / 着色器 + **艺术风格**（孟菲斯、蒸汽波、Y2K、新拟态、玻璃拟态、欧普、粗野主义、瑞士网格、印象派点彩、梵高星夜、浮世绘、包豪斯、波普、酸性设计、赛博朋克、Frutiger Aero、黏土拟态、Art Deco、新中式水墨、像素风——共 21 套风格 token + 组件 demo）
-- **零第三方运行时依赖**：全部用原生 CSS / Canvas / Web Animations API / IntersectionObserver / WebGL 实现（唯一例外：p5.js 流场走 CDN）
+- **设计基础**：已逐页核对 Refactoring UI 的 218 页，保留主题导航，并将遗漏方法补入 5 份项目实施参考；另含 CSS 参数模板。按 [执行入口](references/ui-foundations.md) 使用，阅读方法与覆盖见 [来源说明](references/refactoring-ui-source.md)。不包含原书全文或逐章完整改写。
+- **50 个片段**：18 个 React `.tsx`（Next.js App Router 兼容）+ 32 个原生 HTML 单文件（双击即可预览）
+- **9 大分类**：背景 / 文字 / 光标 / 滚动 / 图片 / 转场 / 生成艺术 / 着色器 + **艺术风格**（孟菲斯、蒸汽波、Y2K、新拟态、玻璃拟态、欧普、粗野主义、瑞士网格、印象派点彩、梵高星夜、浮世绘、包豪斯、波普、酸性设计、赛博朋克、Frutiger Aero、黏土拟态、Art Deco、新中式水墨、像素风、中式恐怖——共 21 套风格 token + 组件 demo）
+- **优先原生实现**：大部分片段用 CSS / Canvas / Web Animations API / IntersectionObserver / WebGL 实现；p5.js 流场走 CDN，React 片段要求项目已有 React。
 - **每个片段都带**：顶部 `CONFIG` 参数对象（颜色/速度/幅度集中调参）、`prefers-reduced-motion` 降级、解释「为什么这么写」的中文注释
 
 ## 目录结构
@@ -16,8 +17,10 @@ motion-skill-kit/
 ├── README.md             # 本文件
 ├── patterns/             # 50 篇模式文档（Context / Approach / Example 三段式）
 ├── snippets/             # 50 个可运行片段（.tsx / .html，与文档一一对应）
-├── templates/            # 起步模板：p5.js / Three.js / shader boilerplate
-├── data/index.json       # 结构化索引（Agent 检索入口）
+├── references/           # 原创设计实施规范、验收流程与书籍来源说明
+├── templates/            # UI 参数 CSS / p5.js / Three.js / shader boilerplate
+├── data/index.json       # 动效索引，同时指向设计基础索引
+├── data/foundations.json # 设计基础材料的主题、标签与路径
 └── scripts/
     ├── build-patterns.ts # 把 snippet 代码嵌入 pattern 文档的 Example 段
     └── validate.ts       # 索引健康报告（语法/一致性/降级/孤儿文件检查）
@@ -26,8 +29,8 @@ motion-skill-kit/
 ## 快速开始（人类用法）
 
 ```bash
-npm install        # 只装 tsx + typescript（校验脚本用，片段本身零依赖）
-npm run validate   # 健康报告：字段完整 / TSX 语法 / 文档与代码一致 / 降级检查
+npm install        # 安装 tsx + typescript，供维护脚本使用
+npm run validate   # 检查片段、设计基础索引、内部引用和版本一致性
 npm run build:docs # 修改 snippet 后重新同步 pattern 文档的 Example 段
 ```
 
@@ -78,14 +81,14 @@ Cursor 没有 Anthropic 式的 skills 自动触发，用 **Project Rules** 引�
 
 ## Agent 检索流程（SKILL.md 摘要）
 
-0. **先选型**：用户未指明风格时，按 SKILL.md 的「自动选型策略」（内容类型 → 风格 + 动效映射表）自行选择，并向用户说明理由与备选；
+0. **先判断问题**：页面设计与改版按 `data/foundations.json` 查相关基础；有艺术效果需求时再按 SKILL.md 选型，信息不足时先保持静态；
 1. **读索引** `data/index.json` → 按 `tags`（中文关键词）/ `category` / `tech` / `performance` 筛选；
 2. **读文档** `doc` 字段指向的 pattern 文档 → Context（适用场景）/ Approach（思路与性能注意）；
 3. **取代码** `files` 字段指向的 snippet → 完整可运行源码；
 4. **注入调参** → 只改 `CONFIG` / `:root` token，保留降级逻辑；
 5. **告知用户** → 降级表现（`reducedMotionFallback` 字段）与性能级别。
 
-> 触发范围：任何前端页面开发任务都应主动使用本 skill 做视觉决策——「使用」指查库决策，允许得出「本次零动效」的结论（如严肃场景）。
+> 适用于前端视觉设计与改版。普通组件可只用设计基础；与视觉无关的逻辑修改无需触发。静态校验通过不等于已通过浏览器、性能或无障碍实测。
 
 ## 未收录风格的扩展流程（skill 自我增长）
 
@@ -113,7 +116,8 @@ Cursor 没有 Anthropic 式的 skills 自动触发，用 **Project Rules** 引�
 - `.html` 必须 `<!DOCTYPE html>` 开头、`</html>` 闭合、内联 CSS/JS、双击可开；
 - 所有片段必须包含 `prefers-reduced-motion` 降级分支，且参数集中定义（效果类用顶部 `CONFIG` 常量对象，风格套件用 `:root` CSS 变量 token 块）；
 - pattern 文档必须含三段式标题，且 Example 代码块与 snippet 文件**逐字节一致**（由 `build-patterns.ts` 从 snippet 单一来源生成，validate 负责盯防失同步）；
-- `snippets/` 与 `patterns/` 中不允许存在未被索引收录的孤儿文件。
+- `snippets/` 与 `patterns/` 中不允许存在未被索引收录的孤儿文件；`references/` 在 `data/foundations.json` 中登记，新增材料应通过 Markdown 链接从技能入口可达。
+- `package.json`、锁文件根包、`skill.json` 与两个索引的版本应保持一致。
 
 ## 性能分级速查
 

@@ -1,0 +1,99 @@
+/* 原创的 UI 参数起点；选择性并入项目，数值不代表原书规定。
+   所有规则限制在 .ui-foundations 中，避免覆盖现有组件系统。
+   示例结构：.ui-shell 包含 .ui-main（必要时与辅助列同级）。 */
+.ui-foundations {
+  --ui-space-1: 0.25rem;
+  --ui-space-2: 0.5rem;
+  --ui-space-3: 0.75rem;
+  --ui-space-4: 1rem;
+  --ui-space-6: 1.5rem;
+  --ui-space-8: 2rem;
+  --ui-space-12: 3rem;
+  --ui-text-small: 0.875rem;
+  --ui-text-body: 1rem;
+  --ui-text-section: 1.375rem;
+  --ui-text-title: clamp(1.75rem, 1.25rem + 2vw, 3rem);
+  --ui-font-body: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --ui-line-body: 1.6;
+  --ui-line-title: 1.15;
+  --ui-content-max: 72rem;
+  --ui-copy-max: 60ch;
+  --ui-radius-control: 0.375rem;
+  --ui-radius-panel: 0.75rem;
+  --ui-canvas: #f4f6f8;
+  --ui-surface: #ffffff;
+  --ui-ink: #17212b;
+  --ui-muted: #4a5968;
+  --ui-border: #d5dce3;
+  --ui-control-border: #687b8f;
+  --ui-action: #155f55;
+  --ui-action-hover: #0f4d45;
+  --ui-on-action: #ffffff;
+  --ui-focus: #1a65b3;
+  --ui-danger: #a61f32;
+  --ui-on-danger: #fff1f3;
+  --ui-elevation-1: 0 1px 3px rgb(16 28 40 / 10%);
+  --ui-elevation-2: 0 2px 5px rgb(16 28 40 / 12%), 0 12px 28px rgb(16 28 40 / 12%);
+  color: var(--ui-ink);
+  background: var(--ui-canvas);
+  font-family: var(--ui-font-body);
+  font-size: var(--ui-text-body);
+  line-height: var(--ui-line-body);
+}
+
+/* 深色主题显式指定，不修改用户偏好或另建全局主题系统。 */
+.ui-foundations[data-ui-theme="dark"] {
+  --ui-canvas: #111820;
+  --ui-surface: #1b2733;
+  --ui-ink: #edf3f8;
+  --ui-muted: #b2c1cf;
+  --ui-border: #3d5061;
+  --ui-control-border: #879bad;
+  --ui-action: #81d4c4;
+  --ui-action-hover: #a4e3d6;
+  --ui-on-action: #122c29;
+  --ui-focus: #9cc8ff;
+  --ui-danger: #ffb3bf;
+  --ui-on-danger: #381923;
+  --ui-elevation-1: 0 1px 3px rgb(0 0 0 / 24%);
+  --ui-elevation-2: 0 2px 5px rgb(0 0 0 / 28%), 0 12px 28px rgb(0 0 0 / 28%);
+}
+
+.ui-foundations .ui-shell {
+  width: min(100% - 2 * var(--ui-space-4), var(--ui-content-max));
+  margin-inline: auto;
+}
+.ui-foundations .ui-main { min-width: 0; }
+.ui-foundations .ui-stack { display: grid; gap: var(--ui-space-6); }
+.ui-foundations .ui-field { display: grid; gap: var(--ui-space-2); }
+.ui-foundations .ui-title {
+  font-size: var(--ui-text-title);
+  line-height: var(--ui-line-title);
+  overflow-wrap: anywhere;
+}
+.ui-foundations .ui-copy { max-width: var(--ui-copy-max); }
+.ui-foundations .ui-muted { color: var(--ui-muted); }
+.ui-foundations .ui-number { text-align: end; font-variant-numeric: tabular-nums; }
+.ui-foundations .ui-panel {
+  padding: var(--ui-space-6);
+  background: var(--ui-surface);
+  border-radius: var(--ui-radius-panel);
+  box-shadow: var(--ui-elevation-1);
+}
+.ui-foundations .ui-action {
+  min-height: 2.75rem;
+  padding: var(--ui-space-2) var(--ui-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-control);
+  font: inherit;
+  color: var(--ui-on-action);
+  background: var(--ui-action);
+}
+.ui-foundations .ui-action:hover { background: var(--ui-action-hover); }
+.ui-foundations .ui-danger { color: var(--ui-danger); background: var(--ui-on-danger); }
+.ui-foundations :focus-visible { outline: 3px solid var(--ui-focus); outline-offset: 3px; }
+.ui-foundations .ui-media { aspect-ratio: 4 / 3; overflow: hidden; }
+.ui-foundations .ui-media > img { width: 100%; height: 100%; object-fit: cover; }
+
+/* 此模板没有动画。添加效果时由该效果局部处理 prefers-reduced-motion，
+   不用全局禁用规则误伤其他组件的必要反馈。 */

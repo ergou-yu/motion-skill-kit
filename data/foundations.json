@@ -1,0 +1,63 @@
+{
+  "version": "1.2.1",
+  "updated": "2026-10-20",
+  "description": "设计基础的按需检索索引；材料包含原创实施规范、参数模板和简明书籍主题导航，不是原书完整改写。",
+  "resources": [
+    {
+      "id": "ui-foundations",
+      "title": "任务与页面设计执行流程",
+      "kind": "workflow",
+      "file": "references/ui-foundations.md",
+      "topics": ["需求转页面", "静态设计", "气质", "方案比较", "风格与动效衔接", "设计系统"],
+      "tags": ["新页面", "改版", "任务", "页面不好看", "设计基础", "Refactoring UI", "灰度", "尺寸档位", "圆角", "文案语气"]
+    },
+    {
+      "id": "ui-layout",
+      "title": "层级、分组、布局与响应式",
+      "kind": "reference",
+      "file": "references/ui-layout.md",
+      "topics": ["注意力", "标签与数值权重", "动作优先级", "语义", "分组", "间距", "容器", "响应式", "复合信息"],
+      "tags": ["视觉层级", "拥挤", "松散", "留白", "网格", "按钮", "表单", "表格", "移动端", "标签", "尺寸档位", "max-width", "表格合列", "边界重量"]
+    },
+    {
+      "id": "ui-type-color",
+      "title": "文字角色、颜色角色与可读性",
+      "kind": "reference",
+      "file": "references/ui-type-color.md",
+      "topics": ["字体", "字号", "字号嵌套", "行宽行高", "基线", "字距", "配色", "色阶", "主题", "对比度"],
+      "tags": ["排版", "中文", "数字对齐", "链接", "HSL", "深色模式", "颜色", "无障碍", "rem", "em", "断词", "英文大写", "感知亮度", "状态标签", "颜色配对"]
+    },
+    {
+      "id": "ui-depth-media",
+      "title": "空间层次、媒体和组件细节",
+      "kind": "reference",
+      "file": "references/ui-depth-media.md",
+      "topics": ["阴影", "交互层次", "表面", "重叠", "图文对比", "图片尺寸", "用户上传", "装饰", "空状态"],
+      "tags": ["层次", "深度", "卡片", "图片", "截图", "图标", "背景", "边框", "错误", "加载", "双层阴影", "按压", "拖拽", "头像", "favicon", "截图裁切", "内描边", "首次使用", "无结果"]
+    },
+    {
+      "id": "ui-review",
+      "title": "设计验收、缺陷记录与持续学习",
+      "kind": "workflow",
+      "file": "references/ui-review.md",
+      "topics": ["视觉验证", "状态", "真实内容", "中间视口", "键盘", "触控", "学习"],
+      "tags": ["设计审查", "验收", "移动端", "空状态", "长文案", "无障碍", "减少动画", "复盘", "断点", "展示尺寸", "排序", "导出", "设计复现"]
+    },
+    {
+      "id": "refactoring-ui-source",
+      "title": "Refactoring UI 来源与简明主题导航",
+      "kind": "source",
+      "file": "references/refactoring-ui-source.md",
+      "topics": ["书籍来源", "主题地图", "逐页阅读覆盖", "阅读方法"],
+      "tags": ["Refactoring UI", "Adam Wathan", "Steve Schoger", "书籍", "出处", "218 页", "逐页", "阅读记录"]
+    },
+    {
+      "id": "ui-foundation-tokens",
+      "title": "原创 CSS 设计参数起点",
+      "kind": "template",
+      "file": "templates/ui-foundation-tokens.css",
+      "topics": ["间距变量", "文字变量", "语义颜色", "深色主题", "表面", "焦点"],
+      "tags": ["CSS", "token", "设计系统", "模板", "主题", "参数"]
+    }
+  ]
+}

@@ -1,9 +1,18 @@
 {
   "name": "motion-skill-kit",
-  "displayName": "前端艺术动效片段库",
-  "version": "1.1.1",
-  "description": "经过验证的前端艺术动效代码片段库。只要任务涉及前端页面开发（组件、页面、落地页、官网、H5、后台改版）就应主动使用：先查索引做视觉决策；用户要求动效/艺术风格时必须使用。未指明风格时按自动选型策略（内容类型→风格+动效映射表）自行选择；用户指定的风格未收录时，联网搜索该风格的代码教学，实现后回写入库（skill 自我增长）。提供 50 个零依赖片段（动效 29 + 艺术风格套件 21），每个片段含 prefers-reduced-motion 降级与集中参数配置。",
+  "displayName": "前端视觉设计与艺术动效",
+  "version": "1.2.1",
+  "description": "前端页面视觉设计、UI 改版与艺术动效技能。先处理任务、层级、布局、文字、颜色、图片与状态，再按需选择 50 个动效或艺术风格片段。包含 Refactoring UI 简明主题导航、原创实施规范、CSS 参数模板和设计验收流程。普通组件可只用设计基础，与视觉无关的任务不必触发。",
   "triggers": [
+    "Refactoring UI",
+    "UI 改版",
+    "设计审查",
+    "视觉层级",
+    "布局",
+    "间距",
+    "排版",
+    "配色",
+    "空状态",
     "前端",
     "页面",
     "组件",
@@ -87,5 +96,6 @@
     "styles"
   ],
   "entry": "SKILL.md",
-  "index": "data/index.json"
+  "index": "data/index.json",
+  "knowledgeIndex": "data/foundations.json"
 }

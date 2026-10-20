@@ -10,17 +10,19 @@
  *  6. .html 片段结构闭合且包含 prefers-reduced-motion
  *  7. 所有片段包含 prefers-reduced-motion 降级与 CONFIG 参数对象
  *  8. 反向检查：snippets/ 与 patterns/ 无孤儿文件、索引无遗漏
+ *  9. 设计基础索引、引用可达性、内部链接与版本一致性
  *
  * 退出码：有 error → 1（CI 可拦截），仅 warn → 0。
  * 运行：npm run validate
  */
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
-import { join, relative, extname } from "node:path";
+import { join, relative, extname, resolve, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
-const rel = (p: string) => relative(ROOT, p);
+// 索引统一使用 /；Windows 的反斜线不能被误判为未收录文件。
+const rel = (p: string) => relative(ROOT, p).replace(/\\/g, "/");
 
 // ---------- 报告收集 ----------
 type Level = "pass" | "warn" | "error";
@@ -64,10 +66,14 @@ const CATEGORIES = ["backgrounds", "text-effects", "cursor", "scroll", "image", 
 // ---------- 1. 读取索引 ----------
 type Snippet = Record<string, unknown>;
 let snippets: Snippet[] = [];
+let knowledgeIndex: unknown;
+let indexVersion: unknown;
 
 try {
   const raw = JSON.parse(readFileSync(join(ROOT, "data", "index.json"), "utf8"));
   snippets = raw.snippets;
+  knowledgeIndex = raw.knowledgeIndex;
+  indexVersion = raw.version;
   if (!Array.isArray(snippets)) throw new Error("snippets 字段不是数组");
   report("pass", "索引解析", "data/index.json", `共 ${snippets.length} 条记录`);
 } catch (e) {
@@ -201,6 +207,98 @@ for (const d of allDocs) {
   if (!indexedDocs.has(rel(d))) {
     report("error", "索引遗漏", rel(d), "patterns 中的文档未被 data/index.json 收录");
   }
+}
+
+// ---------- 9. 设计基础与内部引用 ----------
+try {
+  if (typeof knowledgeIndex !== "string" || !knowledgeIndex) {
+    throw new Error("data/index.json 缺少 knowledgeIndex 路径");
+  }
+  const localPath = (base: string, path: string): string => {
+    const full = resolve(base, path);
+    const inside = relative(ROOT, full);
+    if (inside === ".." || inside.startsWith("../") || inside.startsWith("..\\") || isAbsolute(inside)) {
+      throw new Error(`内部引用超出 skill 目录: ${path}`);
+    }
+    return full;
+  };
+  const catalog = JSON.parse(readFileSync(localPath(ROOT, knowledgeIndex), "utf8"));
+  if (!Array.isArray(catalog.resources) || catalog.resources.length === 0) {
+    throw new Error("设计基础 resources 必须是非空数组");
+  }
+  const ids = new Set<string>();
+  const resourceFiles = new Set<string>();
+  for (const resource of catalog.resources) {
+    const id = String(resource.id ?? "(缺失)");
+    for (const field of ["id", "title", "kind", "file"]) {
+      if (typeof resource[field] !== "string" || !resource[field].trim()) {
+        throw new Error(`${id} 的 ${field} 必须是非空字符串`);
+      }
+    }
+    if (ids.has(id)) throw new Error(`设计基础 id 重复: ${id}`);
+    ids.add(id);
+    if (!["workflow", "reference", "source", "template"].includes(resource.kind)) {
+      throw new Error(`${id} 的 kind 无效: ${resource.kind}`);
+    }
+    for (const field of ["topics", "tags"]) {
+      const values = resource[field];
+      if (!Array.isArray(values) || !values.length || values.some((v) => typeof v !== "string" || !v.trim())) {
+        throw new Error(`${id} 的 ${field} 必须是非空字符串数组`);
+      }
+    }
+    const full = localPath(ROOT, resource.file);
+    if (!existsSync(full) || !statSync(full).isFile()) throw new Error(`材料不存在: ${resource.file}`);
+    const canonical = rel(full);
+    if (resourceFiles.has(canonical)) throw new Error(`设计基础路径重复: ${canonical}`);
+    resourceFiles.add(canonical);
+    report("pass", "设计基础索引", id, canonical);
+  }
+
+  // 从技能入口沿 Markdown 链接遍历：文件存在还不够，Agent 必须能找到它。
+  const reached = new Set<string>();
+  const inspectLinks = (path: string) => {
+    const canonical = rel(path);
+    if (reached.has(canonical)) return;
+    reached.add(canonical);
+    if (extname(path) !== ".md") return;
+    const md = readFileSync(path, "utf8");
+    const prose = md.replace(/```[^\n]*\n[\s\S]*?```/g, "");
+    for (const match of prose.matchAll(/!?\[[^\]]*\]\(([^)\n]+)\)/g)) {
+      const link = match[1].trim().replace(/^<|>$/g, "");
+      if (/^(?:https?:|mailto:|#)/i.test(link)) continue;
+      const file = decodeURIComponent(link.split("#")[0]);
+      if (!file) continue;
+      const target = localPath(resolve(path, ".."), file);
+      if (!existsSync(target) || !statSync(target).isFile()) {
+        report("error", "内部链接", canonical, `目标不存在: ${link}`);
+        continue;
+      }
+      inspectLinks(target);
+    }
+  };
+  inspectLinks(join(ROOT, "SKILL.md"));
+  for (const file of resourceFiles) {
+    report(reached.has(file) ? "pass" : "error", "材料可达", file,
+      reached.has(file) ? "可从 SKILL.md 按链接读取" : "未从 SKILL.md 或其引用链接到此材料");
+  }
+  for (const path of walk(join(ROOT, "references"), [".md"])) {
+    if (!resourceFiles.has(rel(path))) report("error", "设计基础遗漏", rel(path), "未被设计基础索引收录");
+  }
+  const metadata = ["package.json", "package-lock.json", "skill.json"];
+  for (const file of metadata) {
+    const data = JSON.parse(readFileSync(join(ROOT, file), "utf8"));
+    if (data.version !== indexVersion) throw new Error(`${file} 与 data/index.json 版本不一致`);
+    if (file === "package-lock.json" && data.packages?.[""]?.version !== indexVersion) {
+      throw new Error("package-lock.json 根包版本不一致");
+    }
+    if (file === "skill.json" && data.knowledgeIndex !== knowledgeIndex) {
+      throw new Error("skill.json 与 data/index.json 的 knowledgeIndex 不一致");
+    }
+  }
+  if (catalog.version !== indexVersion) throw new Error("设计基础索引版本不一致");
+  report("pass", "版本一致", String(indexVersion), "包、锁文件、技能与两个索引一致");
+} catch (e) {
+  report("error", "设计基础校验", String(knowledgeIndex ?? "data/index.json"), (e as Error).message);
 }
 
 // ---------- 汇总输出 ----------

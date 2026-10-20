@@ -1,6 +1,7 @@
 {
-  "version": "1.1.1",
-  "updated": "2026-09-15",
+  "version": "1.2.1",
+  "updated": "2026-10-20",
+  "knowledgeIndex": "data/foundations.json",
   "categories": {
     "backgrounds": "背景动效：粒子、流场、渐变、噪声、极光",
     "text-effects": "文字动效：逐字入场、故障风、粒子汇聚、渐变流动",
@@ -10,7 +11,7 @@
     "transitions": "页面转场：擦除、共享元素、路由淡入",
     "generative-art": "生成艺术：流场、种子随机、噪声场",
     "shaders": "GLSL 着色器：波纹、云雾、plasma",
-    "styles": "艺术风格套件：孟菲斯/蒸汽波/Y2K/新拟态/玻璃拟态/欧普/粗野/瑞士/印象派/梵高/浮世绘/包豪斯/波普/酸性/赛博朋克/Frutiger Aero/黏土拟态/Art Deco/新中式水墨/像素风"
+    "styles": "艺术风格套件：孟菲斯/蒸汽波/Y2K/新拟态/玻璃拟态/欧普/粗野/瑞士/印象派/梵高/浮世绘/包豪斯/波普/酸性/赛博朋克/Frutiger Aero/黏土拟态/Art Deco/新中式水墨/像素风/中式恐怖"
   },
   "snippets": [
     {
