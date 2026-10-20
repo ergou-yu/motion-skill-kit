@@ -2,7 +2,7 @@
 
 前端视觉设计与艺术动效 Agent Skill。先处理页面的任务、层级、布局、文字、颜色与状态，再按需检索动效代码片段和艺术风格套件。
 
-- **设计基础**：已逐页核对 Refactoring UI 的 218 页，保留主题导航，并将遗漏方法补入 5 份项目实施参考；另含 CSS 参数模板。按 [执行入口](references/ui-foundations.md) 使用，阅读方法与覆盖见 [来源说明](references/refactoring-ui-source.md)。不包含原书全文或逐章完整改写。
+- **设计基础**：覆盖需求梳理、视觉层级、布局间距、文字排版、配色、图片与组件状态，提供 5 份项目实施参考、CSS 参数模板和设计验收流程。按 [执行入口](references/ui-foundations.md) 使用。
 - **50 个片段**：18 个 React `.tsx`（Next.js App Router 兼容）+ 32 个原生 HTML 单文件（双击即可预览）
 - **9 大分类**：背景 / 文字 / 光标 / 滚动 / 图片 / 转场 / 生成艺术 / 着色器 + **艺术风格**（孟菲斯、蒸汽波、Y2K、新拟态、玻璃拟态、欧普、粗野主义、瑞士网格、印象派点彩、梵高星夜、浮世绘、包豪斯、波普、酸性设计、赛博朋克、Frutiger Aero、黏土拟态、Art Deco、新中式水墨、像素风、中式恐怖——共 21 套风格 token + 组件 demo）
 - **优先原生实现**：大部分片段用 CSS / Canvas / Web Animations API / IntersectionObserver / WebGL 实现；p5.js 流场走 CDN，React 片段要求项目已有 React。
@@ -17,7 +17,7 @@ motion-skill-kit/
 ├── README.md             # 本文件
 ├── patterns/             # 50 篇模式文档（Context / Approach / Example 三段式）
 ├── snippets/             # 50 个可运行片段（.tsx / .html，与文档一一对应）
-├── references/           # 原创设计实施规范、验收流程与书籍来源说明
+├── references/           # 设计实施规范、验收流程与参考资料
 ├── templates/            # UI 参数 CSS / p5.js / Three.js / shader boilerplate
 ├── data/index.json       # 动效索引，同时指向设计基础索引
 ├── data/foundations.json # 设计基础材料的主题、标签与路径
